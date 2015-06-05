@@ -2,9 +2,9 @@
 IR Project Codes
 
 
-Usage :
+# Usage :
 `./run.sh b|i|n [input file] [output file]`
     
-b: Benchmark
-n: Normalize database
-i: Create index
+- b: Benchmark
+- n: Normalize database
+- i: Create index
