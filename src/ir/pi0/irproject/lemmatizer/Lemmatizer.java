@@ -1,5 +1,6 @@
-package ir.pi0.irproject.proecessors.lemmatizer;
+package ir.pi0.irproject.lemmatizer;
 
+import ir.pi0.irproject.Consts;
 import ir.pi0.irproject.proecessors.IProcessor;
 import ir.pi0.irproject.structures.FastDictFile;
 
@@ -9,7 +10,7 @@ import java.util.*;
 
 public class Lemmatizer implements IProcessor{
 
-    FastDictFile persian_words=new FastDictFile("words.txt");
+    FastDictFile persian_words=new FastDictFile(Consts.WORDS_FILE);
 
     HashMap<String,String> verbs = new HashMap<String, String>();
 
@@ -20,7 +21,7 @@ public class Lemmatizer implements IProcessor{
         try {
 
             List<String> lines =
-                    java.nio.file.Files.readAllLines(Paths.get("verbs.txt"));
+                    java.nio.file.Files.readAllLines(Paths.get(Consts.VERBS_FILE));
             for(String line:lines){
                 String[] s=line.split("#");
                 if(s.length!=2)

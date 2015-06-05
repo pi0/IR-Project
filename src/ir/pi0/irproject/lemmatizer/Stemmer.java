@@ -1,4 +1,4 @@
-package ir.pi0.irproject.proecessors.lemmatizer;
+package ir.pi0.irproject.lemmatizer;
 
 public class Stemmer {
 

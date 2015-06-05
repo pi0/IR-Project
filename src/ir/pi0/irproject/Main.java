@@ -2,9 +2,8 @@ package ir.pi0.irproject;
 
 import ir.pi0.irproject.io.DBReader;
 import ir.pi0.irproject.proecessors.*;
-import ir.pi0.irproject.proecessors.lemmatizer.Lemmatizer;
+import ir.pi0.irproject.lemmatizer.Lemmatizer;
 import ir.pi0.irproject.repository.WordDict;
-import ir.pi0.irproject.repository.WordDictItem;
 import ir.pi0.irproject.utils.Util;
 
 import java.io.DataOutputStream;
@@ -17,7 +16,7 @@ public class Main {
     void benchmark(String path) throws Exception {
 
         DataOutputStream dos = new DataOutputStream(
-                new FileOutputStream(new File("benchmark.txt")));
+                new FileOutputStream(new File(Consts.BENCHMARK_BASE+"benchmark.txt")));
 
         int test[] = {
                 1024 * 64,/* 64kb */
@@ -50,7 +49,7 @@ public class Main {
 
         IProcessor[] p = {
                 new Normalizer(),
-                new StopWordRemover("PersianStopWords.txt"),
+                new StopWordRemover(Consts.STOPWORDS_FILE),
                 new Lemmatizer(),
                 new Sorter(),
         };

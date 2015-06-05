@@ -1,1 +1,1 @@
-java -Xmx128m -cp out/production/IR_PROJECT/ ir.pi0.irproject.Main "$@"
+java -Xmx128m -cp out/production/IR-PROJECT/ ir.pi0.irproject.Main "$@"

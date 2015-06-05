@@ -1,6 +1,9 @@
 # Ignore big database
 data/IR_FarsiDatabase.txt
 
+# Ignore generated data
+data/processed
+
 # Intellij idea files
 .idea
 
