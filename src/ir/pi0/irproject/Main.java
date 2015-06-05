@@ -4,19 +4,22 @@ import ir.pi0.irproject.io.DBReader;
 import ir.pi0.irproject.proecessors.*;
 import ir.pi0.irproject.lemmatizer.Lemmatizer;
 import ir.pi0.irproject.repository.WordDict;
+import ir.pi0.irproject.repository.WordDictItem;
 import ir.pi0.irproject.utils.Util;
 
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.sql.SQLOutput;
 import java.util.Arrays;
+import java.util.Scanner;
 
 public class Main {
 
     void benchmark(String path) throws Exception {
 
         DataOutputStream dos = new DataOutputStream(
-                new FileOutputStream(new File(Consts.BENCHMARK_BASE+"benchmark.txt")));
+                new FileOutputStream(new File(Consts.BENCHMARK_BASE + "benchmark.txt")));
 
         int test[] = {
                 1024 * 64,/* 64kb */
@@ -43,7 +46,7 @@ public class Main {
 
     }
 
-    void normalize(String path,String out) {
+    void normalize(String path, String out) {
 
         System.out.println("Normalizing data base");
 
@@ -51,19 +54,18 @@ public class Main {
                 new Normalizer(),
                 new StopWordRemover(Consts.STOPWORDS_FILE),
                 new Lemmatizer(),
-                new Sorter(),
+//                new Sorter(),
         };
 
         DBProcessor processor =
                 new DBProcessor(Arrays.asList(p), path, out);
         processor.process();
 
-        System.out.println("Saved to: "+out);
+        System.out.println("Saved to: " + out);
     }
 
 
-
-    void index(String path,String out) throws Exception {
+    void index(String path, String out) throws Exception {
 
         System.out.println("Indexing database");
 
@@ -79,10 +81,34 @@ public class Main {
 
         wordDict.save(new File(out));
 
-        System.out.println("Saved to: "+out);
+        System.out.println("Saved to: " + out);
 
     }
 
+    void cli(String path) throws Exception {
+
+        WordDict wordDict = new WordDict(new File(path));
+
+        Scanner s = new Scanner(System.in);
+
+        while (true) {
+            System.out.println("Word to lookup ~> ");
+            String l = s.nextLine();
+
+            WordDictItem i = wordDict.findByWord(l);
+
+            if (i == null) {
+                System.out.println("Word not found!");
+                continue;
+            }
+
+            System.out.println("Repeats: " + i.repeats);
+            System.out.println("Found in articles: " + i.articlesCount());
+
+        }
+
+
+    }
 
 
     public static void main(String[] args) throws Exception {
@@ -99,10 +125,13 @@ public class Main {
                 main.benchmark(args[1]);
                 break;
             case 'i':
-                main.index(args[1],args[2]);
+                main.index(args[1], args[2]);
                 break;
             case 'n':
-                main.normalize(args[1],args[2]);
+                main.normalize(args[1], args[2]);
+                break;
+            case 'c':
+                main.cli(args[1]);
                 break;
             default:
                 printUsage();
@@ -112,6 +141,6 @@ public class Main {
     }
 
     public static void printUsage() {
-        System.out.println("Usage : ./run.sh b|i|n [input file] [output file]");
+        System.out.println("Usage : ./run.sh b|i|n|c [input file] [output file]");
     }
 }

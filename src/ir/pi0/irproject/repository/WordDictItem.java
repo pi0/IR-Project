@@ -10,7 +10,7 @@ public class WordDictItem {
     final int id;
     final String word;
 
-    final HashSet<Integer> articles = new HashSet<Integer>();
+    final HashSet<Integer> articles = new HashSet<>();
 
     public AtomicInteger repeats = new AtomicInteger(0);
 
@@ -58,5 +58,9 @@ public class WordDictItem {
             b.append(a_id).append(',');
 
         return b.toString();
+    }
+
+    public int articlesCount() {
+        return articles.size();
     }
 }

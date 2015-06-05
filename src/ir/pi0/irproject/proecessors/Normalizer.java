@@ -9,19 +9,29 @@ import java.util.Map;
 
 public class Normalizer implements IProcessor {
 
-    String[] tans_str = {" كي", " کی"};
-    Map<Character, Character> trans_map = new HashMap<Character, Character>();
+    Character[][] _tans_map = {
+            {'ك', 'ک'},
+            {'ي', 'ی'},
+    };
 
+    String tans_to_space_map = "?\\\\\\\"\\.*()!%-/:<>',،;" +
+            "؛٪«»؟";
 
-    String remove_chars_str = "',،;؛٪.*()!%-/:<>0123456789۰۱۲۳۴۵۶۷۸۹\"\r";
+    Map<Character, Character> trans_map = new HashMap<>();
+
+    //    String remove_chars_str = "',،;؛٪.*()!%-/:<>«»0123456789۰۱۲۳۴۵۶۷۸۹؟?\\\"\\r" + ' '/*Half space*/;
+    String remove_chars_str = "0123456789۰۱۲۳۴۵۶۷۸۹\r" + ' '/*Half space*/;
+
     FastDict<Character> remove_chars;
 
     public Normalizer() {
 
-        for (int i = 0; i < tans_str[0].length(); i++)
-            trans_map.put(tans_str[0].charAt(i), tans_str[1].charAt(i));
+        for (Character[] map : _tans_map) trans_map.put(map[0], map[1]);
 
-        remove_chars = new FastDict<Character>(
+        for(char c:tans_to_space_map.toCharArray())
+            trans_map.put(c,' ');
+
+        remove_chars = new FastDict<>(
                 Util.toCharacterArray(remove_chars_str), Character.class);
 
     }
@@ -34,7 +44,7 @@ public class Normalizer implements IProcessor {
         return output.toString();
     }
 
-    public void processArticle(List<String> words,int article_id) {
+    public void processArticle(List<String> words, int article_id) {
         for (int i = 0; i < words.size(); i++) {
             String w = words.get(i);
 

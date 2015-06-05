@@ -11,8 +11,8 @@ public class Consts {
     public static final int MIN_SORT_MEM = 1024 * 1024 * 16;
 
     public static final String STOPWORDS_FILE = "data/persian_stopwords.txt";
-    public static final String WORDS_FILE = "data/persian_verbs.txt";
-    public static final String VERBS_FILE = "data/persian_words.txt";
+    public static final String VERBS_FILE  = "data/persian_verbs.txt";
+    public static final String WORDS_FILE= "data/persian_words.txt";
 
     public static final String BENCHMARK_BASE = "data/processed/benchmark_";
 }

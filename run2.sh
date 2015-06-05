@@ -1,0 +1,1 @@
+java -cp out/production/IR-PROJECT/ ir.pi0.irproject.Main "$@"

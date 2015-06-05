@@ -5,7 +5,6 @@ import ir.pi0.irproject.utils.Util;
 import java.io.*;
 import java.util.Enumeration;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 
 public class WordDict implements IWordDict {
 
@@ -26,14 +25,17 @@ public class WordDict implements IWordDict {
 
     public WordDict(InputStream source) {
 
-        data = new ConcurrentHashMap<String, WordDictItem>();
+        data = new ConcurrentHashMap<>();
         last_word_id = 0;
 
         if (source == null)
             return;
 
+        System.out.println("Reading dictionary database ...");
+
+
         BufferedReader r =
-                new BufferedReader(new InputStreamReader(source));
+                new BufferedReader(new InputStreamReader(source),1024*1024*16);
         String l;
 
         try {
@@ -48,7 +50,7 @@ public class WordDict implements IWordDict {
     }
 
     public WordDict(File file) throws FileNotFoundException {
-        this(file.exists() ? new FileInputStream(file) : null);
+        this(file!=null && file.exists() ? new FileInputStream(file) : null);
         this.file = file;
     }
 

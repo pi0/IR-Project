@@ -8,32 +8,31 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.*;
 
-public class Lemmatizer implements IProcessor{
+public class Lemmatizer implements IProcessor {
 
-    FastDictFile persian_words=new FastDictFile(Consts.WORDS_FILE);
+    FastDictFile persian_words = new FastDictFile(Consts.WORDS_FILE);
 
-    HashMap<String,String> verbs = new HashMap<String, String>();
+    HashMap<String, String> verbs = new HashMap<String, String>();
 
     Stemmer stemmer = new Stemmer();
 
-    public Lemmatizer(){
+    public Lemmatizer() {
 
         try {
 
             List<String> lines =
                     java.nio.file.Files.readAllLines(Paths.get(Consts.VERBS_FILE));
-            for(String line:lines){
-                String[] s=line.split("#");
-                if(s.length!=2)
+            for (String line : lines) {
+                String[] s = line.split("#");
+                if (s.length != 2)
                     continue;
-                String[] parts=line.split("#");
-                for(String c:Conjugations(parts[0],parts[1])) {
+                String[] parts = line.split("#");
+                for (String c : Conjugations(parts[0], parts[1])) {
                     verbs.put(c, parts[0]);
                 }
 
             }
-            System.out.println("Loaded "+verbs.size()+" verbs");
-
+            System.out.println("Loaded " + verbs.size() + " verbs");
 
 
         } catch (IOException e) {
@@ -44,13 +43,12 @@ public class Lemmatizer implements IProcessor{
     }
 
 
-
-    public List<String> Conjugations(String past,String present) {
+    protected List<String> Conjugations(String past, String present) {
         /*Data from JHazm project*/
 
         HashSet<String> conjugates = new HashSet<String>();
 
-        String[] endsList = new String[] { "م", "ی", "", "یم", "ید", "ند" };
+        String[] endsList = new String[]{"م", "ی", "", "یم", "ید", "ند"};
         ArrayList<String> ends = new ArrayList<String>(Arrays.asList(endsList));
 
         for (String end : ends) {
@@ -72,7 +70,7 @@ public class Lemmatizer implements IProcessor{
             conjugates.add(nconj);
         }
 
-        endsList = new String[] { "ه‌ام", "ه‌ای", "ه", "ه‌ایم", "ه‌اید", "ه‌اند" };
+        endsList = new String[]{"ه‌ام", "ه‌ای", "ه", "ه‌ایم", "ه‌اید", "ه‌اند"};
         ends = new ArrayList<String>(Arrays.asList(endsList));
 
         // pastNarratives
@@ -85,10 +83,10 @@ public class Lemmatizer implements IProcessor{
         conjugates.add(GetRefinement("ب" + present));
         conjugates.add(GetRefinement("ن" + present));
 
-        if (present.endsWith("ا") || Arrays.asList(new String[] { "آ", "گو" }).contains(present))
+        if (present.endsWith("ا") || Arrays.asList(new String[]{"آ", "گو"}).contains(present))
             present = present + "ی";
 
-        endsList = new String[] { "م", "ی", "د", "یم", "ید", "ند" };
+        endsList = new String[]{"م", "ی", "د", "یم", "ید", "ند"};
         ends = new ArrayList<String>(Arrays.asList(endsList));
 
         List<String> presentSimples = new ArrayList<String>();
@@ -128,30 +126,30 @@ public class Lemmatizer implements IProcessor{
         return "ن" + text;
     }
 
+    public String lemmetize(String w) {
 
-    public void processArticle(List<String> words,int article_id) {
+        if (persian_words.contains(w))
+            return null;
 
-        for(int i=0;i<words.size();i++){
-            String w=words.get(i);
+        if (verbs.containsKey(w)) return verbs.get(w);
 
-            if(w.length()==0)
+        String stem = stemmer.stem(w);
+        if (persian_words.contains(stem)) return stem;
+
+        return null;
+    }
+
+    public void processArticle(List<String> words, int article_id) {
+
+        for (int i = 0; i < words.size(); i++) {
+            String w = words.get(i);
+
+            if (w.length() == 0)
                 continue;
 
-            if(persian_words.contains(w))
-                continue;
-
-            if(verbs.containsKey(w)){
-                String verb = verbs.get(w);
-                words.set(i, verb);
-                continue;
-            }
-
-            String stem = stemmer.stem(w);
-            if(persian_words.contains(stem)) {
-                words.set(i, stem);
-//                continue;
-            }
-
+            String l = lemmetize(w);
+            if (l != null)
+                words.set(i, l);
 
         }
     }

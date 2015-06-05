@@ -46,7 +46,7 @@ public class DBProcessor {
 
         this.tokenizer = new Tokenizer();
 
-        articles = new Queue<DBProcessorJob>();
+        articles = new Queue<>();
     }
 
     public DBProcessor(List<IProcessor> processors, String path, String outPath) {
@@ -127,7 +127,7 @@ public class DBProcessor {
                         Thread.sleep(50);
                         Util.clearLine();
                     }
-                    System.gc();
+//                    System.gc();
                 }
 
                 articles.enqueue(new DBProcessorJob(article, ++article_id));
@@ -145,7 +145,7 @@ public class DBProcessor {
 
 
             background_writer.join();
-            if(writer!=null)
+            if (writer != null)
                 writer.close();
 
 
@@ -185,12 +185,12 @@ public class DBProcessor {
             return;
 
         List<String> words = tokenizer.tokenize(j.article);
-        if(words==null)
+        if (words == null)
             return;
 
         for (IProcessor p : processors)
             try {
-                p.processArticle(words,j.article_id);
+                p.processArticle(words, j.article_id);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -206,14 +206,14 @@ public class DBProcessor {
             return;
 
         DBProcessorJob j = articles.top();
-        if(j==null)
+        if (j == null)
             return;
 
         //Do it until job is done
         while (true) {
             if (j.done) {
 
-                if(writer !=null)
+                if (writer != null)
                     writer.write(j.processed);
 
                 articles.poll();
@@ -221,12 +221,13 @@ public class DBProcessor {
                     articles.notifyAll();
                 }
 
-                int d = j.article_id - l_w;
-                if (d != 1)
-                    System.err.println("Warning some article skipped: " + l_w + " => " + j.article_id);
-                l_w = j.article_id;
+//                int d = j.article_id - l_w;
+//                if (d != 1)
+//                    System.err.println("Warning some article skipped: " + l_w + " => " + j.article_id);
+//                l_w = j.article_id;
 
 //                System.out.println("Job done and write: "+j.article_id);
+
                 return;
             }
             try {
