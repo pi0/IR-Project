@@ -1,18 +1,29 @@
 package ir.pi0.irproject.repository;
 
-import ir.pi0.irproject.utils.Util;
+import gnu.trove.impl.sync.TSynchronizedIntSet;
+import gnu.trove.map.hash.THashMap;
+import gnu.trove.map.hash.TIntObjectHashMap;
+import gnu.trove.procedure.TObjectProcedure;
+import ir.pi0.irproject.structures.LRUCache;
 
 import java.io.*;
-import java.util.Enumeration;
-import java.util.concurrent.ConcurrentHashMap;
+
 
 public class WordDict implements IWordDict {
 
     //http://stackoverflow.com/questions/81346/most-efficient-way-to-increment-a-map-value-in-java
     //http://stackoverflow.com/questions/20356354/should-i-use-hashtable-or-hashmap-as-a-data-cache
 
-    //Data : Word->Item
-    protected final ConcurrentHashMap<String, WordDictItem> data;
+    //Word->Item
+    protected final THashMap<String, WordDictItem> data;
+
+    protected final LRUCache<String, WordDictItem> data_cache
+            = new LRUCache<>(32);
+
+    //Article_ID -> [article words with repeat]
+    protected final TIntObjectHashMap<TSynchronizedIntSet>
+            article_data
+            = new TIntObjectHashMap<>();
 
     int last_word_id = 1;
 
@@ -25,7 +36,8 @@ public class WordDict implements IWordDict {
 
     public WordDict(InputStream source) {
 
-        data = new ConcurrentHashMap<>();
+        data = new THashMap<>();
+
         last_word_id = 0;
 
         if (source == null)
@@ -35,7 +47,7 @@ public class WordDict implements IWordDict {
 
 
         BufferedReader r =
-                new BufferedReader(new InputStreamReader(source),1024*1024*16);
+                new BufferedReader(new InputStreamReader(source), 1024 * 1024 * 16);
         String l;
 
         try {
@@ -50,12 +62,12 @@ public class WordDict implements IWordDict {
     }
 
     public WordDict(File file) throws FileNotFoundException {
-        this(file!=null && file.exists() ? new FileInputStream(file) : null);
+        this(file != null && file.exists() ? new FileInputStream(file) : null);
         this.file = file;
     }
 
     public WordDict() throws FileNotFoundException {
-        this((File)null);
+        this((File) null);
     }
 
     public void save() {
@@ -70,14 +82,22 @@ public class WordDict implements IWordDict {
 
             System.out.println("Saving dictionary");
 
-            BufferedWriter w =
+            final BufferedWriter w =
                     new BufferedWriter(new FileWriter(file));
 
-            Enumeration<WordDictItem> elements = data.elements();
-            while (elements.hasMoreElements()) {
-                w.write(elements.nextElement().toString());
-                w.write("\r\n");
-            }
+            data.forEachValue(new TObjectProcedure<WordDictItem>() {
+                @Override
+                public boolean execute(WordDictItem wordDictItem) {
+                    try {
+                        w.write(wordDictItem.toString());
+                        w.write("\r\n");
+                        return true;
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        return false;
+                    }
+                }
+            });
 
             System.out.println("Save done");
 
@@ -100,21 +120,44 @@ public class WordDict implements IWordDict {
 
     public WordDictItem findOrCreateByWord(final String word) {
 
-//        return data.computeIfAbsent(word, new Function<String, WordDictItem>() {
-//            public WordDictItem apply(String s) {
-//                return new WordDictItem(getNewWordID(), word);
-//            }
-//        });
+        WordDictItem i;
 
-        WordDictItem i = data.get(word);
+        i = data_cache.get(word);
+        if (i != null)
+            return i;
+        i = data.get(word);
         if (i == null)
-            data.put(word, i = new WordDictItem(getNewWordID(), word));
+            synchronized (data) {
+                data.put(word, i = new WordDictItem(getNewWordID(), word));
+            }
+
+        data_cache.put(word, i);
+
         return i;
 
     }
 
+//    public THashMap<Integer, ArticleDictItem> findOrCreateArticle(int article_id) {
+//        THashMap<Integer, ArticleDictItem> article_words = article_data.get(article_id);
+//        if (article_words == null)
+//            article_data.put(article_id, article_words = new THashMap<>());
+//        return article_words;
+//    }
+//
+//    public ArticleDictItem findOrCreateWordInArticle(int article_id, final int word_id) {
+//
+//        THashMap<Integer, ArticleDictItem> article_words = findOrCreateArticle(article_id);
+//
+//        ArticleDictItem i = article_words.get(word_id);
+//        if (i == null)
+//            article_words.put(word_id, i = new ArticleDictItem(word_id));
+//
+//        return i;
+//    }
+
+
     public WordDictItem findByWord(String word) {
-        return data.get(word);
+        return data.get(word);//TODO: LRUCache
     }
 
     private int getNewWordID() {
@@ -123,14 +166,16 @@ public class WordDict implements IWordDict {
 
     public void increment(final String word, int article_id, int by) {
 
-        if(word.length()==0)
+        if (word.length() == 0)
             return;
 
-        WordDictItem item = findOrCreateByWord(word);
+        WordDictItem word_item = findOrCreateByWord(word);
 
-        item.increment(by, article_id);
+        word_item.increment(by, article_id);
 
-        //TODO: count per article
+//        ArticleDictItem article =
+//                findOrCreateWordInArticle(article_id,word_item.id);
+//        article.increment(by);
 
     }
 

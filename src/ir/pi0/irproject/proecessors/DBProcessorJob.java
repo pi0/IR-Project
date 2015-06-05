@@ -26,7 +26,7 @@ public class DBProcessorJob {
 
     public synchronized void done(List<String> res){
         this.processed=res;
-        this.article="";
+//        this.article="";
         done=true;
         synchronized (lock){
             lock.notify();

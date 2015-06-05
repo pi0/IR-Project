@@ -15,4 +15,5 @@ public class Consts {
     public static final String WORDS_FILE= "data/persian_words.txt";
 
     public static final String BENCHMARK_BASE = "data/processed/benchmark_";
+    public static String waiting_tag=" [ #WAITING FOR QUEUE# ]";
 }

@@ -40,7 +40,8 @@ public class DBReader extends FileReader {
 //                read += c_read * 2/*UTF-8*/;
 //                http://stackoverflow.com/questions/5078314/isnt-the-size-of-character-in-java-2-bytes
 
-                read += article.getBytes().length;
+                read += article.getBytes().length;//DON'T USE IT IN REAL WORLD!
+//                read += article.length()*8;//Just approx!
 
                 p = read * 1.0 / total;
                 if (p - l_p > .009) {

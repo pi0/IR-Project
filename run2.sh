@@ -1,1 +1,1 @@
-java -cp out/production/IR-PROJECT/ ir.pi0.irproject.Main "$@"
+java -cp out/production/IR-PROJECT/:libs/trove-3.1a1.jar ir.pi0.irproject.Main "$@"

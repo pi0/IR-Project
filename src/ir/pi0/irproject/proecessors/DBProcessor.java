@@ -108,26 +108,22 @@ public class DBProcessor {
 
             while ((article = reader.readTag()) != null) {
                 tag_counter++;
-                read += article.getBytes().length;
+
+                long heapFreeSize = Runtime.getRuntime().freeMemory();
 
                 //Progress
-                p = read * 1.0 / total;
+                p = 1- (reader.available() * 1.0 / total);
                 if (p - l_p > .002) {
-                    long t = System.currentTimeMillis() - startTime;
-                    Util.printProgress(p, t, false);
-                    System.out.printf("{ %d Tags}", tag_counter);
+                    print_progress(startTime,p,null,tag_counter,heapFreeSize);
                     l_p = p;
                 }
 
-                long heapFreeSize = Runtime.getRuntime().freeMemory();
                 if (articles.size() > queue_max || heapFreeSize < Consts.MIN_SORT_MEM) {
                     while (articles.size() > 0) {
-                        Util.printProgress(p, System.currentTimeMillis() - startTime, false);
-                        System.out.printf(" #WAITING FOR QUEUE# [ Jobs : %d ]", articles.size());
-                        Thread.sleep(50);
-                        Util.clearLine();
+                        print_progress(startTime,p,Consts.waiting_tag,tag_counter,heapFreeSize);
+                        Thread.sleep(200);
                     }
-//                    System.gc();
+                    System.gc();
                 }
 
                 articles.enqueue(new DBProcessorJob(article, ++article_id));
@@ -163,6 +159,15 @@ public class DBProcessor {
         }
     }
 
+    private void print_progress(long startTime,double p,String tag,int tag_counter,long heapFreeSize) {
+        long t = System.currentTimeMillis() - startTime;
+        Util.printProgress(p, t, false);
+        System.out.printf(" [ %d Tags ] [ Heap Free: %s ] ", tag_counter,
+                Util.humanReadableByteCount((int) heapFreeSize, false));
+        if(tag!=null)
+            System.out.print(tag);
+    }
+
 
     private DBProcessorJob getJob() {
         try {
@@ -185,6 +190,8 @@ public class DBProcessor {
             return;
 
         List<String> words = tokenizer.tokenize(j.article);
+        j.article="";//Free data ASAP
+
         if (words == null)
             return;
 

@@ -24,10 +24,13 @@ public class Util {
     }
 
     public static void printProgress(double p, long elapsed, boolean ms) {
-        clearLine();
-        System.out.print(progress_str[(int) ((p_l) * p)%progress_str.length]);
+        if (p > 1) p = 1;
 
-        System.out.printf(" %02.01f%% ~> ETA [ %s ]", (p * 100),
+        clearLine();
+
+
+        System.out.print(progress_str[(int) ((p_l) * p) % progress_str.length]);
+        System.out.printf(" %02.01f%% ~> [ ETA: %s ]", (p * 100),
                 Util.getDurationBreakdown((long) (elapsed * 1.0 * ((1 - p) / p)), ms));
     }
 
@@ -75,15 +78,15 @@ public class Util {
     }
 
 
-    public static Character[] toCharacterArray( String s ) {
+    public static Character[] toCharacterArray(String s) {
 
-        if ( s == null ) {
+        if (s == null) {
             return null;
         }
 
         int len = s.length();
         Character[] array = new Character[len];
-        for (int i = 0; i < len ; i++) {
+        for (int i = 0; i < len; i++) {
             array[i] = new Character(s.charAt(i));
         }
 

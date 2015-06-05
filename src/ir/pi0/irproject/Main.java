@@ -54,7 +54,7 @@ public class Main {
                 new Normalizer(),
                 new StopWordRemover(Consts.STOPWORDS_FILE),
                 new Lemmatizer(),
-//                new Sorter(),
+                new Sorter(),
         };
 
         DBProcessor processor =

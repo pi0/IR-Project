@@ -1,5 +1,9 @@
 package ir.pi0.irproject.repository;
 
+import gnu.trove.impl.sync.TSynchronizedIntSet;
+import gnu.trove.procedure.TIntProcedure;
+import gnu.trove.set.hash.TIntHashSet;
+
 import java.util.HashSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -10,15 +14,14 @@ public class WordDictItem {
     final int id;
     final String word;
 
-    final HashSet<Integer> articles = new HashSet<>();
+    final TSynchronizedIntSet articles = new TSynchronizedIntSet(new TIntHashSet());
 
     public AtomicInteger repeats = new AtomicInteger(0);
 
 
-    WordDictItem(int id, String word) {
+    WordDictItem(int id, final String word) {
         this.id = id;
         this.word = word;
-        this.articles.add(id);//TODO: concurrency ?
     }
 
     public static WordDictItem fromData(String data) {
@@ -41,6 +44,7 @@ public class WordDictItem {
 
     public void increment(int by, int article_id) {
         repeats.addAndGet(by);
+        articles.add(article_id);
     }
 
     @Override
@@ -48,14 +52,19 @@ public class WordDictItem {
 
         //id,word,repeats,[a0,...,an,]
 
-        StringBuilder b = new StringBuilder();
+        final StringBuilder b = new StringBuilder();
 
         b.append(id).append(',')
                 .append(word).append(',')
                 .append(repeats).append(',');
 
-        for (int a_id : articles)
-            b.append(a_id).append(',');
+        articles.forEach(new TIntProcedure() {
+            @Override
+            public boolean execute(int i) {
+                b.append(i).append(',');
+                return true;
+            }
+        });
 
         return b.toString();
     }
