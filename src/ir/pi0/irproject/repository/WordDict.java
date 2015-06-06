@@ -44,7 +44,7 @@ public class WordDict {
                 new BufferedReader(new InputStreamReader(source), 1024 * 1024 * 16);
         String l = null;
 
-        long heapFreeSize = Runtime.getRuntime().freeMemory();
+//        long heapFreeSize = Runtime.getRuntime().freeMemory();
 
         try {
             l = r.readLine();
@@ -65,10 +65,10 @@ public class WordDict {
             e.printStackTrace();
         }
 
-        long heapFreeSize2 = Runtime.getRuntime().freeMemory();
-        System.out.format("Heap usage: %s \n",
-                Util.humanReadableByteCount(
-                        (int) (heapFreeSize2 - heapFreeSize), false));
+//        long heapFreeSize2 = Runtime.getRuntime().freeMemory();
+//        System.out.format("Heap usage: %s \n",
+//                Util.humanReadableByteCount(
+//                        (int) (heapFreeSize2 - heapFreeSize), false));
     }
 
     public WordDict(File file) throws FileNotFoundException {
