@@ -3,8 +3,17 @@ IR Project Codes
 
 
 # Usage :
-`./run.sh b|i|n [input file] [output file]`
-    
-- b: Benchmark
-- n: Normalize database
-- i: Create index
+`./scripts/run.sh b|i|n [input file] [output file]`
+
+Where:  
+- b: Benchmark  
+- n: Normalize database  
+- i: Create index  
+
+There are also some shortcuts:
+
+|Function            |   Shortcut script            |
+| ------------------ | ---------------------------- | 
+|Normalize database  |   `./scripts/normalize.sh`   |
+|Create index        |   `./scripts/index.sh`       |
+|Interactive cli     |   `./scrips/cli.sh`          |
