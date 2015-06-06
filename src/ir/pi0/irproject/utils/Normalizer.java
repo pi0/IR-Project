@@ -1,11 +1,8 @@
 package ir.pi0.irproject.utils;
 
-import ir.pi0.irproject.proecessors.IProcessor;
 import ir.pi0.irproject.structures.FastDict;
-import ir.pi0.irproject.utils.Util;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class Normalizer {

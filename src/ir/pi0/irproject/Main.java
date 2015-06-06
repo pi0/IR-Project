@@ -48,7 +48,7 @@ public class Main {
 
     void normalize(String path, String out) {
 
-        System.out.println("Normalizing data base");
+        System.out.println("Normalizing database");
 
         IProcessor[] p = {
                 new StopWordRemover(Consts.STOPWORDS_FILE),

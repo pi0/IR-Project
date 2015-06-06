@@ -1,0 +1,1 @@
+./scripts/run2.sh c data/processed/index.txt 
