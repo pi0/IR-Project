@@ -74,6 +74,8 @@ public class DBProcessor {
             double p, l_p = -1;
 
 
+            System.out.println("Starting "+Consts.PROCESSOR_WORKERS+" Parallel workers");
+
             background_workers = new Thread[Consts.PROCESSOR_WORKERS];
             for (int i = 0; i < background_workers.length; i++) {
                 background_workers[i] = new Thread(new Runnable() {

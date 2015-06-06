@@ -20,7 +20,7 @@ public class WordDictItem {
 
     public AtomicInteger repeats = new AtomicInteger(0);
 
-    public final static String csvHeader = "word_id,word,repeats,articles";
+    public final static String csvHeader = "word_id,word,repeats,articles,articles_count";
 
     WordDictItem(int id, final String word) {
         this.id = id;
@@ -69,6 +69,8 @@ public class WordDictItem {
                 return true;
             }
         });
+
+        b.append(articlesCount());
 
         return b.toString();
     }

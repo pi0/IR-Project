@@ -11,12 +11,12 @@ public class Normalizer {
             {'ك', 'ک'},
             {'ي', 'ی'},
             {'ة', 'ه'},
-            {'إ','ا'},
-            
+            {'إ', 'ا'},
+
     };
 
-    String tans_to_space_map = "?•.*$_[]{}()!%-/:<>',،;\\\"\n\t" +
-            "؛٪«»؟" +
+    String tans_to_space_map = "=?•.+*$_[]{}()!%-/:<>',،;\\\"\n\t" +
+            "؛٪«÷»؟" +
             " "/*Half space*/;
 
 
@@ -48,7 +48,7 @@ public class Normalizer {
 
         for (char c : input.toCharArray()) {
 
-            if (c == ' ') {
+            if (c == ' ' || remove_chars.contains(c)) {
                 if (spaced)
                     continue;
                 else {
@@ -59,9 +59,7 @@ public class Normalizer {
             }
 
             spaced = false;
-
-            if (!remove_chars.contains(c))
-                output.append(trans_map.containsKey(c) ? trans_map.get(c) : c);
+            output.append(trans_map.containsKey(c) ? trans_map.get(c) : c);
         }
         return output.toString();
     }
