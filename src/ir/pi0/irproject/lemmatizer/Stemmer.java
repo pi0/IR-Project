@@ -8,17 +8,25 @@ public class Stemmer {
             "ات", "ان", "ترین", "تر", "م", "ت", "ش", "یی", "ی", "ها", "ٔ", "‌ا", //
     };
 
-    public String stem(String word) {
+    private final String[] starts = new String[] {
+            "از","در","با","بر","به","و"
+    };
+
+    public String stem_1(String word) {
         for (String end : this.ends) {
             if (word.endsWith(end)) {
                 word = word.substring(0, word.length() - end.length()).trim();
-                //TODO: Strip whitespaces
             }
         }
+        return word;
+    }
 
-        if (word.endsWith("ۀ"))
-            word = word.substring(0, word.length() - 1) + "ه";
-
+    public String stem_2(String word) {
+        for (String start : this.starts) {
+            if (word.startsWith(start)) {
+                word = word.substring(start.length()).trim();
+            }
+        }
         return word;
     }
 

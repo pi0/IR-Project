@@ -133,8 +133,13 @@ public class Lemmatizer implements IProcessor {
 
         if (verbs.containsKey(w)) return verbs.get(w);
 
-        String stem = stemmer.stem(w);
+        String stem = stemmer.stem_1(w);
         if (persian_words.contains(stem)) return stem;
+        else {
+            stem=stemmer.stem_2(w);
+            if(persian_words.contains(stem))
+                return stem;
+        }
 
         return null;
     }

@@ -24,6 +24,7 @@ public class Normalizer {
 
     String remove_chars_str = "0123456789۰۱۲۳۴۵۶۷۸۹®\r" +
             "ء" +
+            "ً" +
             "abcdefghijklmnopqrstuvwxyz" +
             "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 

@@ -1,6 +1,7 @@
 package ir.pi0.irproject;
 
 import ir.pi0.irproject.io.DBReader;
+import ir.pi0.irproject.lemmatizer.Stemmer;
 import ir.pi0.irproject.proecessors.*;
 import ir.pi0.irproject.lemmatizer.Lemmatizer;
 import ir.pi0.irproject.repository.WordDict;
@@ -111,7 +112,6 @@ public class Main {
 
 
     public static void main(String[] args) throws Exception {
-
         Main main = new Main();
 
         if (args.length < 1) {

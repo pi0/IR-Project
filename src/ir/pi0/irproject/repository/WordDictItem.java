@@ -70,7 +70,7 @@ public class WordDictItem {
             }
         });
 
-        b.append(articlesCount());
+        b.append(',').append(articlesCount());
 
         return b.toString();
     }
