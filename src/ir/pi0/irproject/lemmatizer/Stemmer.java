@@ -9,8 +9,7 @@ public class Stemmer {
     };
 
     private final String[] starts = new String[] {
-            "از","در","با","بر","به","و"
-    };
+            "از","در","با","بر","به","و","یا","برای"    };
 
     public String stem_1(String word) {
         for (String end : this.ends) {

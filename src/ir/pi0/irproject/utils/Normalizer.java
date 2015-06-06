@@ -15,16 +15,14 @@ public class Normalizer {
 
     };
 
-    String tans_to_space_map = "=?•.+*$_[]{}()!%-/:<>',،;\\\"\n\t" +
-            "؛٪«÷»؟" +
-            " "/*Half space*/;
-
-
     Map<Character, Character> trans_map = new HashMap<>();
 
     String remove_chars_str = "0123456789۰۱۲۳۴۵۶۷۸۹®\r" +
             "ء" +
             "ً" +
+            "=`@#^&?•.+*$_[]{}()!%-/:<>',،;\\\"\n\t" +
+            "؛ـ٪«÷»؟" +
+            " "/*Half space*/ +
             "abcdefghijklmnopqrstuvwxyz" +
             "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -34,12 +32,8 @@ public class Normalizer {
 
         for (Character[] map : _tans_map) trans_map.put(map[0], map[1]);
 
-        for (char c : tans_to_space_map.toCharArray())
-            trans_map.put(c, ' ');
-
         remove_chars = new FastDict<>(
                 Util.toCharacterArray(remove_chars_str), Character.class);
-
     }
 
     public String normalize(String input) {
@@ -50,6 +44,10 @@ public class Normalizer {
         for (char c : input.toCharArray()) {
 
             if (c == ' ' || remove_chars.contains(c)) {
+
+                if(c=='ـ')
+                    continue;
+
                 if (spaced)
                     continue;
                 else {
