@@ -148,8 +148,9 @@ public class Lemmatizer implements IProcessor {
                 continue;
 
             String l = lemmetize(w);
-            if (l != null)
+            if (l != null) {
                 words.set(i, l);
+            }
 
         }
     }

@@ -5,6 +5,7 @@ import gnu.trove.procedure.TIntProcedure;
 import gnu.trove.set.hash.TIntHashSet;
 
 import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class WordDictItem {
@@ -15,6 +16,7 @@ public class WordDictItem {
     final String word;
 
     final TSynchronizedIntSet articles = new TSynchronizedIntSet(new TIntHashSet());
+
 
     public AtomicInteger repeats = new AtomicInteger(0);
 
@@ -44,7 +46,7 @@ public class WordDictItem {
 
     public void increment(int by, int article_id) {
         repeats.addAndGet(by);
-        articles.add(article_id);
+//        articles.add(article_id);
     }
 
     @Override

@@ -6,16 +6,18 @@ import java.util.regex.Pattern;
 
 public class Tokenizer {
 
-    private final Pattern pattern;
+    private final Pattern pattern = Pattern.compile(" +");
 
-    public Tokenizer() {
-//        this.pattern = Pattern.compile("[\\s'\",،;\\.\\*()!%-/:\r\n<>0-9]+");
-        this.pattern = Pattern.compile("[\\s\n]+");//Faster
-    }
+    private final Normalizer normalizer = new Normalizer();
+
 
     public List<String> tokenize(String text) {
-//        return new ArrayList<String>(Arrays.asList(pattern.split(text)));
-        return Arrays.asList(pattern.split(text));//Faster ? :D
+
+        text=normalizer.normalize(text);
+
+        return Arrays.asList(pattern.split(
+                text
+        ));
     }
 
 }

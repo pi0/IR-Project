@@ -1,6 +1,7 @@
 package ir.pi0.irproject.proecessors;
 
 import ir.pi0.irproject.structures.FastDictFile;
+import ir.pi0.irproject.utils.Normalizer;
 
 import java.util.List;
 

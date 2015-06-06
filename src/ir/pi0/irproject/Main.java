@@ -5,12 +5,12 @@ import ir.pi0.irproject.proecessors.*;
 import ir.pi0.irproject.lemmatizer.Lemmatizer;
 import ir.pi0.irproject.repository.WordDict;
 import ir.pi0.irproject.repository.WordDictItem;
+import ir.pi0.irproject.utils.Normalizer;
 import ir.pi0.irproject.utils.Util;
 
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.sql.SQLOutput;
 import java.util.Arrays;
 import java.util.Scanner;
 
@@ -51,7 +51,6 @@ public class Main {
         System.out.println("Normalizing data base");
 
         IProcessor[] p = {
-                new Normalizer(),
                 new StopWordRemover(Consts.STOPWORDS_FILE),
                 new Lemmatizer(),
                 new Sorter(),

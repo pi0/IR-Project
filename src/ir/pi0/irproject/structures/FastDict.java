@@ -25,7 +25,7 @@ public class FastDict<T extends Comparable<T>> {
         /*
         http://www.programcreek.com/2014/04/check-if-array-contains-a-value-java/
          */
-        return java.util.Arrays.binarySearch(items, c)>0;
+        return java.util.Arrays.binarySearch(items, c)>=0;
     }
 
 }

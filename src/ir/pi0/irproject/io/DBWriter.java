@@ -26,10 +26,10 @@ public class DBWriter extends FileWriter {
             if (word.length() > 0)
                 out.append(word).append(" ");
         }
+
         out.append("\n");
 
         write(out.toString());
-
     }
 
     public void close() {

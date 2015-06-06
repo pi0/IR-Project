@@ -4,32 +4,33 @@ import ir.pi0.irproject.repository.WordDict;
 
 import java.util.List;
 
-public class Indexer extends WordDict implements IProcessor {
+public class Indexer implements IProcessor {
+
+    WordDict d;
 
     public Indexer(WordDict parent) {
-        super(parent);
+        d=parent;
     }
 
     public void processArticle(List<String> words, int article_id) {
 
-
-        String lastword="";
+        String last_word="";
         int last_repeat= 0;
 
         for (String word : words) {
             if(word.length()==0)
                 continue;
 
-            if (lastword.equals(word)) {
+            if (last_word.equals(word)) {
                 last_repeat++;
             } else {
-                increment(lastword, article_id, last_repeat);
-                lastword = word;
+                d.increment(last_word, article_id, last_repeat);
+                last_word = word;
                 last_repeat=1;
             }
         }
 
-        increment(lastword, article_id, last_repeat);
+        d.increment(last_word, article_id, last_repeat);
 
     }
 }
