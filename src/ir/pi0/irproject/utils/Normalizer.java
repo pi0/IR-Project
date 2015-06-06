@@ -12,14 +12,16 @@ public class Normalizer {
             {'ي', 'ی'},
     };
 
-    String tans_to_space_map = "?.*()!%-/:<>',،;\"\n\t" +
+    String tans_to_space_map = "?.*[]{}()!%-/:<>',،;\\\"\n\t" +
             "؛٪«»؟" +
             " "/*Half space*/;
 
 
     Map<Character, Character> trans_map = new HashMap<>();
 
-    String remove_chars_str = "0123456789۰۱۲۳۴۵۶۷۸۹\r";
+    String remove_chars_str = "0123456789۰۱۲۳۴۵۶۷۸۹\r" +
+            "abcdefghijklmnopqrstuvwxyz" +
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
     FastDict<Character> remove_chars;
 
