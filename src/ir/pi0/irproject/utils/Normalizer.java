@@ -10,16 +10,20 @@ public class Normalizer {
     Character[][] _tans_map = {
             {'ك', 'ک'},
             {'ي', 'ی'},
+            {'ة', 'ه'},
+            {'إ','ا'},
+            
     };
 
-    String tans_to_space_map = "?.*[]{}()!%-/:<>',،;\\\"\n\t" +
+    String tans_to_space_map = "?•.*$_[]{}()!%-/:<>',،;\\\"\n\t" +
             "؛٪«»؟" +
             " "/*Half space*/;
 
 
     Map<Character, Character> trans_map = new HashMap<>();
 
-    String remove_chars_str = "0123456789۰۱۲۳۴۵۶۷۸۹\r" +
+    String remove_chars_str = "0123456789۰۱۲۳۴۵۶۷۸۹®\r" +
+            "ء" +
             "abcdefghijklmnopqrstuvwxyz" +
             "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
