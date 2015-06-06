@@ -20,6 +20,7 @@ public class WordDictItem {
 
     public AtomicInteger repeats = new AtomicInteger(0);
 
+    public final static String csvHeader = "word_id,word,repeats,articles";
 
     WordDictItem(int id, final String word) {
         this.id = id;
@@ -37,22 +38,23 @@ public class WordDictItem {
 
         instance.repeats = new AtomicInteger(repeats);
 
-        if (split.length > 3)
-            for (int i = 3; i < split.length; i++)
-                instance.articles.add(Integer.parseInt(split[i]));
+        if (split.length > 3) {
+            for (String a : split[3].split(";"))
+                instance.articles.add(Integer.parseInt(a));
+        }
 
         return instance;
     }
 
     public void increment(int by, int article_id) {
         repeats.addAndGet(by);
-//        articles.add(article_id);
+        articles.add(article_id);
     }
 
     @Override
     public String toString() {
 
-        //id,word,repeats,[a0,...,an,]
+        //id,word,repeats,[a0;...;an;]
 
         final StringBuilder b = new StringBuilder();
 
@@ -63,7 +65,7 @@ public class WordDictItem {
         articles.forEach(new TIntProcedure() {
             @Override
             public boolean execute(int i) {
-                b.append(i).append(',');
+                b.append(i).append(';');
                 return true;
             }
         });

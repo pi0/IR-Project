@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 d=$1;
 bsz=`sudo blockdev --getbsz $d`;
 iomin=`sudo blockdev --getiomin $d`;

@@ -16,7 +16,7 @@ public class WordDict {
     //Word->Item
     protected final THashMap<String, WordDictItem> data;
 
-    protected final LRUCache<String, WordDictItem> data_cache = new LRUCache<>(32);
+    protected final LRUCache<String, WordDictItem> data_cache = new LRUCache<>(64);
 
     //Article_ID -> [article words with repeat]
     protected final TIntObjectHashMap<TIntIntMap> article_data;
@@ -41,7 +41,16 @@ public class WordDict {
 
         BufferedReader r =
                 new BufferedReader(new InputStreamReader(source), 1024 * 1024 * 16);
-        String l;
+        String l = null;
+        try {
+            l = r.readLine();
+
+            if (!WordDictItem.csvHeader.equals(l))
+                System.err.println("Warning: Invalid index csv header");
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         try {
             while ((l = r.readLine()) != null) {
@@ -77,6 +86,9 @@ public class WordDict {
 
             final BufferedWriter w =
                     new BufferedWriter(new FileWriter(file));
+
+            w.write(WordDictItem.csvHeader);
+            w.write("\r\n");
 
             data.forEachValue(new TObjectProcedure<WordDictItem>() {
                 @Override
@@ -119,9 +131,9 @@ public class WordDict {
 
         WordDictItem i;
 
-//        i = data_cache.get(word);
-//        if (i != null)
-//            return i;
+        i = data_cache.get(word);
+        if (i != null)
+            return i;
 
         i = data.get(word);
         if (i == null)
@@ -129,7 +141,7 @@ public class WordDict {
                 data.put(word, i = new WordDictItem(getNewWordID(), word));
             }
 
-//        data_cache.put(word, i);
+        data_cache.put(word, i);
 
         return i;
 
@@ -150,13 +162,15 @@ public class WordDict {
         word_item.increment(by, article_id);
 
 
-        TIntIntMap article = article_data.get(article_id);
-        if (article == null)
-            synchronized (article_data) {
-                article_data.put(article_id, article = TCollections.synchronizedMap(new TIntIntHashMap()));
-            }
+        TIntIntMap article;
 
-        article.adjustOrPutValue(word_item.id,by,by);
+        synchronized (article_data) {
+            article = article_data.get(article_id);
+            if (article == null)
+                article_data.put(article_id, article = TCollections.synchronizedMap(new TIntIntHashMap()));
+        }
+
+        article.adjustOrPutValue(word_item.id, by, by);
 
     }
 
