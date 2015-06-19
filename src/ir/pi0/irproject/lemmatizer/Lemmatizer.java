@@ -28,7 +28,7 @@ public class Lemmatizer implements IProcessor {
                     continue;
                 String[] parts = line.split("#");
                 for (String c : Conjugations(parts[0], parts[1])) {
-                    verbs.put(c, parts[0]);
+                    verbs.put(c/*.replace("\u200C", " ")*/, parts[0]);
                 }
 
             }
@@ -40,6 +40,54 @@ public class Lemmatizer implements IProcessor {
         }
 
 
+    }
+
+
+    public String lemmetize(String w) {
+
+        w = Stemmer.trim(w);
+
+        if (persian_words.contains(w)) return w;
+        else if (is_verb(w)) return verbs.get(w);
+
+        String stem = stemmer.stem(w), stem2=w;
+        for (; stem != null; stem2 = stem, stem = stemmer.stem(stem)) {
+            if (persian_words.contains(stem)) return stem;
+            else if (is_verb(stem)) return verbs.get(stem);
+        }
+
+        stem2=stemmer.stemEx(stem2);
+        for (; stem2 != null; stem2 = stemmer.stemEx(stem2)) {
+            if (persian_words.contains(stem2)) return stem2;
+            else if (is_verb(stem2)) return verbs.get(stem2);
+        }
+
+        return null;
+    }
+
+    public boolean is_verb(String w) {
+        return verbs.containsKey(w);
+    }
+
+
+    public void processArticle(List<String> words, int article_id) {
+
+        for (int i = 0; i < words.size(); i++) {
+            String w = words.get(i);
+
+            if (w.length() == 0)
+                continue;
+
+            String l = lemmetize(w);
+            if (l != null) {
+//                String ll = lemmetize(l);
+//                if (ll != null)
+//                    words.set(i, ll);
+//                else
+                words.set(i, l);
+            }
+
+        }
     }
 
 
@@ -71,7 +119,7 @@ public class Lemmatizer implements IProcessor {
         }
 
         endsList = new String[]{"ه‌ام", "ه‌ای", "ه", "ه‌ایم", "ه‌اید", "ه‌اند"};
-        ends = new ArrayList<String>(Arrays.asList(endsList));
+        ends = new ArrayList<>(Arrays.asList(endsList));
 
         // pastNarratives
         for (String end : ends) {
@@ -87,7 +135,7 @@ public class Lemmatizer implements IProcessor {
             present = present + "ی";
 
         endsList = new String[]{"م", "ی", "د", "یم", "ید", "ند"};
-        ends = new ArrayList<String>(Arrays.asList(endsList));
+        ends = new ArrayList<>(Arrays.asList(endsList));
 
         List<String> presentSimples = new ArrayList<String>();
         for (String end : ends) {
@@ -115,7 +163,7 @@ public class Lemmatizer implements IProcessor {
             conjugates.add(GetRefinement(conj));
         }
 
-        return new ArrayList<String>(conjugates);
+        return new ArrayList<>(conjugates);
     }
 
     private String GetRefinement(String text) {
@@ -126,37 +174,5 @@ public class Lemmatizer implements IProcessor {
         return "ن" + text;
     }
 
-    public String lemmetize(String w) {
 
-        if (persian_words.contains(w))
-            return null;
-
-        if (verbs.containsKey(w)) return verbs.get(w);
-
-        String stem = stemmer.stem_1(w);
-        if (persian_words.contains(stem)) return stem;
-        else {
-            stem=stemmer.stem_2(w);
-            if(persian_words.contains(stem))
-                return stem;
-        }
-
-        return null;
-    }
-
-    public void processArticle(List<String> words, int article_id) {
-
-        for (int i = 0; i < words.size(); i++) {
-            String w = words.get(i);
-
-            if (w.length() == 0)
-                continue;
-
-            String l = lemmetize(w);
-            if (l != null) {
-                words.set(i, l);
-            }
-
-        }
-    }
 }

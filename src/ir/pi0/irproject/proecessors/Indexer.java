@@ -32,5 +32,7 @@ public class Indexer implements IProcessor {
 
         d.increment(last_word, article_id, last_repeat);
 
+        d.flush_article(article_id);
+
     }
 }

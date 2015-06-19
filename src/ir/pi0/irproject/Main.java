@@ -1,12 +1,9 @@
 package ir.pi0.irproject;
 
 import ir.pi0.irproject.io.DBReader;
-import ir.pi0.irproject.lemmatizer.Stemmer;
-import ir.pi0.irproject.proecessors.*;
 import ir.pi0.irproject.lemmatizer.Lemmatizer;
+import ir.pi0.irproject.proecessors.*;
 import ir.pi0.irproject.repository.WordDict;
-import ir.pi0.irproject.repository.WordDictItem;
-import ir.pi0.irproject.utils.Normalizer;
 import ir.pi0.irproject.utils.Util;
 
 import java.io.DataOutputStream;
@@ -51,9 +48,12 @@ public class Main {
 
         System.out.println("Normalizing database");
 
+        IProcessor stopWordRemover=new StopWordRemover(Consts.STOPWORDS_FILE);
+
         IProcessor[] p = {
-                new StopWordRemover(Consts.STOPWORDS_FILE),
+                stopWordRemover,
                 new Lemmatizer(),
+                stopWordRemover,
                 new Sorter(),
         };
 
@@ -69,17 +69,26 @@ public class Main {
 
         System.out.println("Indexing database");
 
-        WordDict wordDict = new WordDict();
+        File articles = new File(out+".articles");
+        if(articles.exists())
+            Util.deleteRecursive(articles);
+        articles.mkdirs();
+
+        File words = new File(out);
+        if(words.exists())
+            words.delete();
+
+        WordDict wordDict = new WordDict(words,articles);
 
         IProcessor[] p = {
                 new Indexer(wordDict)
         };
 
         DBProcessor processor =
-                new DBProcessor(Arrays.asList(p), path, null);
+                new DBProcessor(Arrays.asList(p), path);
         processor.process();
 
-        wordDict.save(new File(out));
+        wordDict.save();
 
         System.out.println("Saved to: " + out);
 
@@ -87,24 +96,18 @@ public class Main {
 
     void cli(String path) throws Exception {
 
-        WordDict wordDict = new WordDict(new File(path));
+        WordDict wordDict = new WordDict(new File(path),new File(path+".articles"));
 
         Scanner s = new Scanner(System.in);
 
         while (true) {
-            System.out.println("Word to lookup ~> ");
+            System.out.print("Word to lookup ~> ");
             String l = s.nextLine();
-
-            WordDictItem i = wordDict.findByWord(l);
-
-            if (i == null) {
-                System.out.println("Word not found!");
-                continue;
-            }
-
-            System.out.println("Repeats: " + i.repeats);
-            System.out.println("Found in articles: " + i.articlesCount());
-
+            Integer i = wordDict.getWordRepeats(l);
+            if(i!=null)
+                System.out.println("Repeats: "+i);
+            else
+                System.out.println("Not found !");
         }
 
 
@@ -118,6 +121,11 @@ public class Main {
             printUsage();
             return;
         }
+
+        System.out.println("IR-Project");
+        System.out.format("Total heap: %s\r\n",
+            Util.humanReadableByteCount(Runtime.getRuntime().maxMemory()));
+        System.out.println("-----------------------------");
 
         switch (args[0].charAt(0)) {
             case 'b':

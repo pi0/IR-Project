@@ -8,16 +8,12 @@ public class Tokenizer {
 
     private final Pattern pattern = Pattern.compile(" +");
 
-    private final Normalizer normalizer = new Normalizer();
-
-
     public List<String> tokenize(String text) {
 
-        text=normalizer.normalize(text);
+        text=Normalizer.normalize(text);
 
-        return Arrays.asList(pattern.split(
-                text
-        ));
+        String[] s= pattern.split(text);
+        return Arrays.asList(s);
     }
 
 }

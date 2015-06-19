@@ -44,11 +44,11 @@ public class FastDictFile {
         /*
         http://www.programcreek.com/2014/04/check-if-array-contains-a-value-java/
          */
-        return java.util.Arrays.binarySearch(items, word)>0;
+        return java.util.Arrays.binarySearch(items, word)>=0;
     }
 
     public interface Middleware{
-        public String process(String in);
+        String process(String in);
     }
 
 }

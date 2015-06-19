@@ -63,18 +63,17 @@ public class DBProcessor {
             return false;
         lock = true;
 
-
         try {
 
             long startTime = System.currentTimeMillis();
 
-            int tag_counter = 0;
+            int article_counter = 0;
 
-            int read = 0, total = reader.available();
+            int total = reader.available();
             double p, l_p = -1;
 
 
-            System.out.println("Starting "+Consts.PROCESSOR_WORKERS+" Parallel workers");
+            System.out.println("Starting " + Consts.PROCESSOR_WORKERS + " Parallel workers");
 
             background_workers = new Thread[Consts.PROCESSOR_WORKERS];
             for (int i = 0; i < background_workers.length; i++) {
@@ -106,29 +105,33 @@ public class DBProcessor {
             background_writer.start();
 
             String article;
-            int article_id = 0;
+            int last_article_id = 0;
+
+            long heapFreeSize_min = Runtime.getRuntime().totalMemory();
 
             while ((article = reader.readTag()) != null) {
-                tag_counter++;
+                article_counter++;
 
                 long heapFreeSize = Runtime.getRuntime().freeMemory();
+                if (heapFreeSize < heapFreeSize_min)
+                    heapFreeSize_min = heapFreeSize;
 
                 //Progress
-                p = 1- (reader.available() * 1.0 / total);
+                p = 1 - (reader.available() * 1.0 / total);
                 if (p - l_p > .002) {
-                    print_progress(startTime,p,null,tag_counter,heapFreeSize);
+                    print_progress(startTime, p, null, article_counter, heapFreeSize);
                     l_p = p;
                 }
 
                 if (articles.size() > queue_max || heapFreeSize < Consts.MIN_SORT_MEM) {
                     while (articles.size() > 0) {
-                        print_progress(startTime,p,Consts.waiting_tag,tag_counter,heapFreeSize);
-                        Thread.sleep(200);
+                        print_progress(startTime, p, Consts.waiting_tag, article_counter, heapFreeSize);
+                        Thread.sleep(100);
                     }
                     System.gc();
                 }
 
-                articles.enqueue(new DBProcessorJob(article, ++article_id));
+                articles.enqueue(new DBProcessorJob(article, ++last_article_id));
                 synchronized (articles) {
                     articles.notify();
                 }
@@ -149,6 +152,8 @@ public class DBProcessor {
 
             long stopTime = System.currentTimeMillis();
             long elapsedTime = stopTime - startTime;
+            System.out.printf("Max heap usage during process : %s\n",
+                    Util.humanReadableByteCount(Runtime.getRuntime().totalMemory()-heapFreeSize_min));
             System.out.printf("Took : %s\n", Util.getDurationBreakdown(elapsedTime, true));
 
             return true;
@@ -161,12 +166,12 @@ public class DBProcessor {
         }
     }
 
-    private void print_progress(long startTime,double p,String tag,int tag_counter,long heapFreeSize) {
+    private void print_progress(long startTime, double p, String tag, int tag_counter, long heapFreeSize) {
         long t = System.currentTimeMillis() - startTime;
         Util.printProgress(p, t, false);
-        System.out.printf(" [ %d Tags ] [ Heap Free: %s ] ", tag_counter,
+        System.out.printf(" [ %d Articles ] [ Heap Free: %s ] ", tag_counter,
                 Util.humanReadableByteCount((int) heapFreeSize, false));
-        if(tag!=null)
+        if (tag != null)
             System.out.print(tag);
     }
 
@@ -192,7 +197,7 @@ public class DBProcessor {
             return;
 
         List<String> words = tokenizer.tokenize(j.article);
-        j.article="";//Free data ASAP
+        j.article = "";//Free data ASAP
 
         if (words == null)
             return;
@@ -206,8 +211,6 @@ public class DBProcessor {
 
         j.done(words);
     }
-
-    int l_w = 0;
 
 
     private synchronized void writeArticle() {
@@ -230,17 +233,9 @@ public class DBProcessor {
                     articles.notifyAll();
                 }
 
-//                int d = j.article_id - l_w;
-//                if (d != 1)
-//                    System.err.println("Warning some article skipped: " + l_w + " => " + j.article_id);
-//                l_w = j.article_id;
-
-//                System.out.println("Job done and write: "+j.article_id);
-
                 return;
             }
             try {
-//                System.out.println("Waiting for "+j.article_id+" to done");
                 synchronized (j.lock) {
                     j.lock.wait();
                 }
