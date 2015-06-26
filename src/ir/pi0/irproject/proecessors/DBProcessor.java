@@ -107,25 +107,28 @@ public class DBProcessor {
             String article;
             int last_article_id = 0;
 
-            long heapFreeSize_min = Runtime.getRuntime().totalMemory();
+            long heapTotal = Runtime.getRuntime().totalMemory();
+            long heapFreeSize_min = heapTotal;
 
             while ((article = reader.readTag()) != null) {
                 article_counter++;
 
+                //(Debug)
                 long heapFreeSize = Runtime.getRuntime().freeMemory();
                 if (heapFreeSize < heapFreeSize_min)
                     heapFreeSize_min = heapFreeSize;
 
                 //Progress
                 p = 1 - (reader.available() * 1.0 / total);
-                if (p - l_p > .002) {
-                    print_progress(startTime, p, null, article_counter, heapFreeSize);
+                if (p - l_p > .004) {
+                    print_progress(startTime, p, null, article_counter, heapFreeSize*1.0 / heapTotal);
                     l_p = p;
                 }
 
                 if (articles.size() > queue_max || heapFreeSize < Consts.MIN_SORT_MEM) {
                     while (articles.size() > 0) {
-                        print_progress(startTime, p, Consts.waiting_tag, article_counter, heapFreeSize);
+                        print_progress(startTime, p, /*Consts.waiting_tag*/ null,
+                                article_counter, heapFreeSize*1.0 / heapTotal);
                         Thread.sleep(100);
                     }
                     System.gc();
@@ -153,7 +156,7 @@ public class DBProcessor {
             long stopTime = System.currentTimeMillis();
             long elapsedTime = stopTime - startTime;
             System.out.printf("Max heap usage during process : %s\n",
-                    Util.humanReadableByteCount(Runtime.getRuntime().totalMemory()-heapFreeSize_min));
+                    Util.humanReadableByteCount(Runtime.getRuntime().totalMemory() - heapFreeSize_min));
             System.out.printf("Took : %s\n", Util.getDurationBreakdown(elapsedTime, true));
 
             return true;
@@ -166,11 +169,18 @@ public class DBProcessor {
         }
     }
 
-    private void print_progress(long startTime, double p, String tag, int tag_counter, long heapFreeSize) {
+    private void print_progress(long startTime, double p, String tag,
+                                int tag_counter, double heap_free) {
         long t = System.currentTimeMillis() - startTime;
-        Util.printProgress(p, t, false);
-        System.out.printf(" [ %d Articles ] [ Heap Free: %s ] ", tag_counter,
-                Util.humanReadableByteCount((int) heapFreeSize, false));
+
+        Util.clearLine();
+
+        Util.printProgress(p, t, false, true, "Progress");
+
+        System.out.printf(" [ %d Articles ] ", tag_counter);
+
+        Util.printProgress(1-heap_free,0,false,false,"Heap usage");
+
         if (tag != null)
             System.out.print(tag);
     }

@@ -1,55 +1,100 @@
 package ir.pi0.irproject.repository;
 
-import gnu.trove.map.TIntIntMap;
+import java.io.*;
+import java.sql.SQLOutput;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+
 import gnu.trove.map.hash.TIntIntHashMap;
 import gnu.trove.map.hash.TIntObjectHashMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
+import gnu.trove.map.TIntIntMap;
 import gnu.trove.procedure.TIntIntProcedure;
 import gnu.trove.procedure.TIntProcedure;
 import gnu.trove.procedure.TObjectProcedure;
+
 import ir.pi0.irproject.Consts;
+import ir.pi0.irproject.structures.LRUCache;
 import ir.pi0.irproject.utils.Util;
-
-import java.io.*;
-import java.util.concurrent.atomic.AtomicInteger;
-
 
 public class WordDict {
 
-    public final static String csvHeader_word_repeat = "word_id,word,repeats";
+    public final static String csvHeader_word_repeat = "word_id,word,repeats,in_articles";
 
     protected final TObjectIntHashMap<String> word_id_map
             = new TObjectIntHashMap<>(Consts.PREDICTED_INITIAL_WORDS_COUNT);
 
-    protected final TIntIntMap word_repeats =
-            new TIntIntHashMap(Consts.PREDICTED_INITIAL_WORDS_COUNT);
+    protected final TIntIntMap word_repeats
+            = new TIntIntHashMap(Consts.PREDICTED_INITIAL_WORDS_COUNT);
+
+    protected final TIntIntMap word_repeats_in_article
+            = new TIntIntHashMap(Consts.PREDICTED_INITIAL_WORDS_COUNT);
 
     protected final TIntObjectHashMap<TIntIntHashMap> article_words
             = new TIntObjectHashMap<>(Consts.PREDICTED_INITIAL_WORDS_COUNT);
 
-    private File word_repeat_file = null;
-    private File article_word_file = null;
+    protected final LRUCache<Integer, WordPosting> word_postings;
+
+    private final File word_repeat_file;
+    private final File article_words_dir;
+    private final File word_postings_dir;
 
     AtomicInteger last_word_id = new AtomicInteger(0);
 
-    public WordDict(File word_repeat, File article_word) {
+    boolean sync_postings;
 
-        this.word_repeat_file = word_repeat;
-        this.article_word_file = article_word;
+    public WordDict(File db, boolean purge_old_data, boolean sync_postings) {
 
+        this.sync_postings = sync_postings;
+        this.word_repeat_file = db;
+
+
+        if (purge_old_data && db.exists())
+            db.delete();
+
+        File data_root_dir = new File(db.getParent(), db.getName() + ".data");
+        if (!data_root_dir.exists())
+            data_root_dir.mkdirs();
+        else if (purge_old_data)
+            Util.deleteRecursive(data_root_dir);
+
+        this.article_words_dir = new File(data_root_dir, "article_words");
+        if (!article_words_dir.exists())
+            article_words_dir.mkdirs();
+
+        this.word_postings_dir = new File(data_root_dir, "word_postings");
+        if (!word_postings_dir.exists())
+            word_postings_dir.mkdirs();
+
+        //Create posting root dirs
+        if (purge_old_data && sync_postings)
+            for (int i = 0; i < Consts.POSTINGS_L1_Index_SIZE; i++)
+                new File(word_postings_dir, String.valueOf(i)).mkdir();
+
+
+        word_postings = new LRUCache<>(Consts.WORD_POSTINGS_LRU_SIZE, new Consumer<WordPosting>() {
+            @Override
+            public void accept(WordPosting wordPosting) {
+                wordPosting.flush();
+            }
+        });
+
+        //(Debug)
         System.gc();
         long heapFreeSize = Runtime.getRuntime().freeMemory();
 
         //-------------------------
-        if (word_repeat.exists()) {
+        if (!purge_old_data) {
             System.out.println("Reading Words database ...");
 
-            BufferedReader r =
-                    null;
+            BufferedReader r;
             try {
-                r = new BufferedReader(new InputStreamReader(new FileInputStream(word_repeat)));
+                r = new BufferedReader(new InputStreamReader(new FileInputStream(db)));
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
+                return;
             }
 
             String l;
@@ -74,6 +119,7 @@ public class WordDict {
 
         //-------------------------
 
+        //(Debug)
         System.gc();
         long heapFreeSize2 = Runtime.getRuntime().freeMemory();
         System.out.format("Heap usage: %s \n",
@@ -82,7 +128,7 @@ public class WordDict {
 
 
     public void save() {
-        if (word_repeat_file == null || article_word_file == null)
+        if (article_words_dir == null)
             return;
 
         try {
@@ -100,8 +146,9 @@ public class WordDict {
                 public boolean execute(String word) {
                     Integer word_id = word_id_map.get(word);
                     Integer repeats = word_repeats.get(word_id);
+                    Integer repeats_arc = word_repeats_in_article.get(word_id);
                     try {
-                        w.write(String.valueOf(word_id) + ',' + word + ',' + repeats + "\n");
+                        w.write(String.valueOf(word_id) + ',' + word + ',' + repeats + "," + repeats_arc + "\n");
                         return true;
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -117,8 +164,16 @@ public class WordDict {
             article_words.keySet().forEach(new TIntProcedure() {
                 @Override
                 public boolean execute(int value) {
-                    flush_article(value);
+                    flush_article(value, true);
                     return true;
+                }
+            });
+
+            System.out.println("Flushing all article postings");
+            word_postings.forEach(new BiConsumer<Integer, WordPosting>() {
+                @Override
+                public void accept(Integer integer, WordPosting wordPosting) {
+                    wordPosting.flush();
                 }
             });
 
@@ -133,6 +188,78 @@ public class WordDict {
             e.printStackTrace();
         }
     }
+
+    public void generate_weights() {
+
+        System.out.println("Generating word/article weights");
+
+        final Integer[] articles=list_articles();
+
+        //(debug)
+        long startTime = System.currentTimeMillis();
+        long heapFreeSize_min = Runtime.getRuntime().totalMemory();
+
+        //Some pre-calculations
+        final double logN=Util.log2(word_repeats.size());
+
+        for (int i = 0; i < articles.length; i++) {
+            final int article_id=articles[i];
+
+            //(Debug)
+            Util.clearLine();
+            Util.printProgress((i * 1.0) / articles.length,
+                    System.currentTimeMillis() - startTime, false, true, "Progress");
+            long heapFreeSize = Runtime.getRuntime().freeMemory();
+            if (heapFreeSize < heapFreeSize_min)
+                heapFreeSize_min = heapFreeSize;
+
+            TIntIntHashMap article = getArticle(article_id);
+
+            //-------------
+
+            //First find maximum repeats in this article
+            int max_repeats=0;
+            for(int r:article.values())
+               if(r>max_repeats)
+                   max_repeats=r;
+
+            //pre-calculate
+            final double InvNMax = 1.0/max_repeats;
+
+            //for each word, calculate Wij
+            article.forEachEntry(new TIntIntProcedure() {
+                @Override
+                public boolean execute(int word_id, int repeats) {
+                    double logRepeatInArticles = Util.log2(word_repeats_in_article.get(word_id));
+                    double w = repeats*InvNMax*(logN-logRepeatInArticles);
+
+                    //Now store it
+                    try {
+                        FileWriter writer= new FileWriter(
+                                new File(article_words_dir, String.valueOf(article_id)),true);
+                        writer.append(String.format(",0.5f",w));
+                        writer.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    return true;
+                }
+            });
+
+            article_words.remove(articles[i]);
+        }
+
+
+        long stopTime = System.currentTimeMillis();
+        long elapsedTime = stopTime - startTime;
+        System.out.printf("Max heap usage during process : %s\n",
+                Util.humanReadableByteCount(Runtime.getRuntime().totalMemory() - heapFreeSize_min));
+        System.out.printf("Took : %s\n", Util.getDurationBreakdown(elapsedTime, true));
+
+    }
+
+
 
     //----------------
 
@@ -151,6 +278,24 @@ public class WordDict {
         if (m == null)
             m = load_article(article_id);//Magically load it from disk
         return m;
+    }
+
+    public WordPosting getWordPosting(int word_id) {
+        WordPosting p;
+        synchronized (word_postings) {
+            p = word_postings.get(word_id);
+        }
+
+        if (p == null) {
+            String filename = (word_id % Consts.POSTINGS_L1_Index_SIZE) + "/"
+                    + (word_id / Consts.POSTINGS_L1_Index_SIZE);
+            p = new WordPosting(new File(word_postings_dir, filename));
+            synchronized (word_postings) {
+                word_postings.put(word_id, p);
+            }
+        }
+
+        return p;
     }
 
     public Integer getWordRepeats(String word) {
@@ -185,21 +330,32 @@ public class WordDict {
     }
 
 
-    public void flush_article(int article_id) {
+    public void flush_article(final int article_id, final boolean update_postings) {
         TIntIntHashMap article = getArticle(article_id);
         if (article == null)
             return;
 
-        File out = new File(article_word_file, String.valueOf(article_id));
+        File article_words_file = new File(article_words_dir, String.valueOf(article_id));
+
         try {
 
-            final BufferedWriter w = new BufferedWriter(new FileWriter(out));
-
+            //Save article words
+            final BufferedWriter w = new BufferedWriter(new FileWriter(article_words_file));
             article.forEachEntry(new TIntIntProcedure() {
                 @Override
-                public boolean execute(int key, int val) {
+                public boolean execute(int word_id, int word_repeats) {
                     try {
-                        w.write(key + "," + val + "\n");
+                        w.write(word_id + "," + word_repeats + "\n");
+
+                        if (update_postings && sync_postings) {
+                            //Also update postings
+                            getWordPosting(word_id).append(article_id);
+                        }
+
+                        if (update_postings) {
+                            word_repeats_in_article.adjustOrPutValue(word_id, 1, 1);
+                        }
+
                         return true;
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -207,10 +363,10 @@ public class WordDict {
                     }
                 }
             });
-
             w.close();
 
-            article_words.remove(article_id);
+
+            this.article_words.remove(article_id);
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -220,7 +376,7 @@ public class WordDict {
 
     public TIntIntHashMap load_article(int article_id) {
         TIntIntHashMap article = new TIntIntHashMap();
-        File file = new File(article_word_file, String.valueOf(article_id));
+        File file = new File(article_words_dir, String.valueOf(article_id));
 
         if (file.exists()) {
             try {
@@ -242,6 +398,20 @@ public class WordDict {
         }
 
         return article;
-
     }
+
+    public Integer[] list_articles() {
+        File[] files = article_words_dir.listFiles();
+        if(files==null)
+            return new Integer[0];
+
+        Integer[] ids=new Integer[files.length];
+
+        for (int i = 0; i < files.length; i++) {
+            ids[i]=Integer.parseInt(files[i].getName());
+        }
+
+        return ids;
+    }
+
 }

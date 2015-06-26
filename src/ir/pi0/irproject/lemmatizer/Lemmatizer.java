@@ -80,10 +80,6 @@ public class Lemmatizer implements IProcessor {
 
             String l = lemmetize(w);
             if (l != null) {
-//                String ll = lemmetize(l);
-//                if (ll != null)
-//                    words.set(i, ll);
-//                else
                 words.set(i, l);
             }
 

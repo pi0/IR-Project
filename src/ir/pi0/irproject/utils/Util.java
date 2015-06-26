@@ -15,10 +15,11 @@ import java.util.regex.Pattern;
 public class Util {
 
     private static String[] progress_str;
-    private static int p_l = 20;
+    private static int p_l = 30;
 
     static {
         progress_str = new String[p_l];
+
         for (int l = 0; l < p_l; l++) {
             progress_str[l] = "[";
             for (int i = 0; i <= l; i++)
@@ -27,20 +28,35 @@ public class Util {
                 progress_str[l] += " ";
 //            progress_str[p_l-l]="";
             progress_str[l] += "]";
+
+            char[] progressStr = progress_str[l].toCharArray();
+
+            int s_offset = (int) ((p_l / 2.0) - 2);
+            for (int i = 0; i < 4; i++) {
+                progressStr[i + s_offset] = 'X';
+            }
+            progress_str[l] = String.copyValueOf(progressStr);
+
         }
 
+
     }
 
-    public static void printProgress(double p, long elapsed, boolean ms) {
+    public static void printProgress(double p, long elapsed, boolean ms, boolean eta, String title) {
         if (p > 1) p = 1;
+        if (p < 0) p = 0;
 
-        clearLine();
+        System.out.print(title + ": ");
 
+        System.out.print(progress_str[(int) ((p_l) * p) % progress_str.length]
+                .replace("XXXX", String.format("%02.01f%%", (p * 100))));
 
-        System.out.print(progress_str[(int) ((p_l) * p) % progress_str.length]);
-        System.out.printf(" %02.01f%% ~> [ ETA: %s ]", (p * 100),
-                Util.getDurationBreakdown((long) (elapsed * 1.0 * ((1 - p) / p)), ms));
+        if (eta) {
+            System.out.printf(" [ ETA: %s ]",
+                    Util.getDurationBreakdown((long) (elapsed * 1.0 * ((1 - p) / p)), ms));
+        }
     }
+
 
     public static void clearLine() {
         System.out.print("\33[2K\r");
@@ -118,14 +134,11 @@ public class Util {
         return r;
     }
 
-    public static boolean deleteRecursive(File path) throws FileNotFoundException {
-        if (!path.exists()) throw new FileNotFoundException(path.getAbsolutePath());
+    public static boolean deleteRecursive(File path)  {
         boolean ret = true;
-        if (path.isDirectory()) {
-            for (File f : path.listFiles()) {
+        if (path.isDirectory())
+            for (File f : path.listFiles())
                 ret = ret && deleteRecursive(f);
-            }
-        }
         return ret && path.delete();
     }
 
@@ -136,53 +149,11 @@ public class Util {
         w.write((v) & 0xFF);
     }
 
-
-    //Class size
-    private static final int NR_BITS = Integer.valueOf(System.getProperty("sun.arch.data.model"));
-    private static final int BYTE = 8;
-    private static final int WORD = NR_BITS / BYTE;
-    private static final int MIN_SIZE = 16;
-
-    public static int sizeOf(Class src) {
-        //
-        // Get the instance fields of src class
-        //
-        List<Field> instanceFields = new LinkedList<Field>();
-        do {
-            if (src == Object.class) return MIN_SIZE;
-            for (Field f : src.getDeclaredFields()) {
-                if ((f.getModifiers() & Modifier.STATIC) == 0) {
-                    instanceFields.add(f);
-                }
-            }
-            src = src.getSuperclass();
-        } while (instanceFields.isEmpty());
-        //
-        // Get the field with the maximum offset
-        //
-        long maxOffset = 0;
-        for (Field f : instanceFields) {
-            long offset = UNSAFE.objectFieldOffset(f);
-            if (offset > maxOffset) maxOffset = offset;
-        }
-        return (((int) maxOffset / WORD) + 1) * WORD;
-    }
-
-    public static final sun.misc.Unsafe UNSAFE;
-
-    static {
-        Object theUnsafe = null;
-        Exception exception = null;
-        try {
-            Class<?> uc = Class.forName("sun.misc.Unsafe");
-            Field f = uc.getDeclaredField("theUnsafe");
-            f.setAccessible(true);
-            theUnsafe = f.get(uc);
-        } catch (Exception e) {
-            exception = e;
-        }
-        UNSAFE = (sun.misc.Unsafe) theUnsafe;
-        if (UNSAFE == null) throw new Error("Could not obtain access to sun.misc.Unsafe", exception);
+    public static int log2( int bits )
+    {
+        if( bits == 0 )
+            return 0; // or throw exception
+        return 31 - Integer.numberOfLeadingZeros( bits );
     }
 
 

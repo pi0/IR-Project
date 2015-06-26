@@ -48,7 +48,7 @@ public class Main {
 
         System.out.println("Normalizing database");
 
-        IProcessor stopWordRemover=new StopWordRemover(Consts.STOPWORDS_FILE);
+        IProcessor stopWordRemover = new StopWordRemover(Consts.STOPWORDS_FILE);
 
         IProcessor[] p = {
                 stopWordRemover,
@@ -69,16 +69,7 @@ public class Main {
 
         System.out.println("Indexing database");
 
-        File articles = new File(out+".articles");
-        if(articles.exists())
-            Util.deleteRecursive(articles);
-        articles.mkdirs();
-
-        File words = new File(out);
-        if(words.exists())
-            words.delete();
-
-        WordDict wordDict = new WordDict(words,articles);
+        WordDict wordDict = new WordDict(new File(out), true, false);
 
         IProcessor[] p = {
                 new Indexer(wordDict)
@@ -94,9 +85,21 @@ public class Main {
 
     }
 
+
+    void generate(String db) throws Exception {
+
+        System.out.println("Generate weights");
+
+        WordDict wordDict = new WordDict(new File(db), false,false);
+
+        wordDict.generate_weights();
+
+    }
+
+
     void cli(String path) throws Exception {
 
-        WordDict wordDict = new WordDict(new File(path),new File(path+".articles"));
+        WordDict wordDict = new WordDict(new File(path), false, false);
 
         Scanner s = new Scanner(System.in);
 
@@ -104,8 +107,8 @@ public class Main {
             System.out.print("Word to lookup ~> ");
             String l = s.nextLine();
             Integer i = wordDict.getWordRepeats(l);
-            if(i!=null)
-                System.out.println("Repeats: "+i);
+            if (i != null)
+                System.out.println("Repeats: " + i);
             else
                 System.out.println("Not found !");
         }
@@ -124,7 +127,7 @@ public class Main {
 
         System.out.println("IR-Project");
         System.out.format("Total heap: %s\r\n",
-            Util.humanReadableByteCount(Runtime.getRuntime().maxMemory()));
+                Util.humanReadableByteCount(Runtime.getRuntime().maxMemory()));
         System.out.println("-----------------------------");
 
         switch (args[0].charAt(0)) {
@@ -133,6 +136,9 @@ public class Main {
                 break;
             case 'i':
                 main.index(args[1], args[2]);
+                break;
+            case 'g':
+                main.generate(args[1]);
                 break;
             case 'n':
                 main.normalize(args[1], args[2]);
@@ -148,6 +154,6 @@ public class Main {
     }
 
     public static void printUsage() {
-        System.out.println("Usage : ./run.sh b|i|n|c [input file] [output file]");
+        System.out.println("Usage : ./run.sh b|i|g|n|c [input file] [output file]");
     }
 }

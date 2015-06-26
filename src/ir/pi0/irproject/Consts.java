@@ -4,8 +4,14 @@ public class Consts {
 
     public final static String DB_TAG = "<مقاله>";
 
-    public static final int PROCESSOR_WORKERS =
-            Runtime.getRuntime().availableProcessors() - 2 /*IO Workers*/;
+    public static final int PROCESSOR_WORKERS;
+
+    static {
+        int p = Runtime.getRuntime().availableProcessors();
+        if (p > 3)
+            p -= 2; /*IO Workers*/
+        PROCESSOR_WORKERS = p;
+    }
 
     public final static int BEST_BUFFER_SIZE = 1024;
 
@@ -19,10 +25,14 @@ public class Consts {
     public static final String WORDS_FILE = "data/persian_words.txt";
     public static final String BENCHMARK_BASE = "data/processed/benchmark_";
 
-    public static String waiting_tag = " [ #WAITING FOR QUEUE# ]";
+//    public static String waiting_tag = " [ #WAITING FOR QUEUE# ]";
 
     public static final int PREDICTED_INITIAL_WORDS_COUNT = 500000;
-        //492442 unique words for our standard db
+
+    public static final int WORD_POSTINGS_LRU_SIZE = PREDICTED_INITIAL_WORDS_COUNT/500;
+
+    public static final int POSTINGS_L1_Index_SIZE = PREDICTED_INITIAL_WORDS_COUNT/100;
+    //492442 unique words for our standard db
 
 
 }

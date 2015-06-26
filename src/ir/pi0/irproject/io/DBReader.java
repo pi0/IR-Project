@@ -45,7 +45,7 @@ public class DBReader extends FileReader {
 
                 p = read * 1.0 / total;
                 if (p - l_p > .009) {
-                    Util.printProgress(p, System.currentTimeMillis() - startTime, false);
+                    Util.printProgress(p, System.currentTimeMillis() - startTime, false,true,"");
                     l_p = p;
                 }
             }
@@ -93,7 +93,7 @@ public class DBReader extends FileReader {
                 //Progress
                 p = read * 1.0 / total;
                 if (p - l_p > .002) {
-                    Util.printProgress(p, System.currentTimeMillis() - startTime, false);
+                    Util.printProgress(p, System.currentTimeMillis() - startTime, false,false,"");
                     System.out.printf(" { %d Tags }", tag_counter);
                     l_p = p;
                 }
