@@ -90,7 +90,7 @@ public class Main {
 
         System.out.println("Generate weights");
 
-        WordDict wordDict = new WordDict(new File(db), false,false);
+        WordDict wordDict = new WordDict(new File(db), false, false);
 
         wordDict.generate_weights();
 
@@ -114,6 +114,33 @@ public class Main {
         }
 
 
+    }
+
+    void demo(String path, String out) {
+        System.out.println("Demo mode!");
+
+        IProcessor stopWordRemover = new StopWordRemover(Consts.STOPWORDS_FILE);
+
+        WordDict wordDict = new WordDict(new File(out), true, false);
+
+        IProcessor[] p = {
+                stopWordRemover,
+                new Lemmatizer(),
+                stopWordRemover,
+                new Sorter(),
+                new Indexer(wordDict),
+        };
+
+        System.out.println("StopWord -> Lemmatize -> StopWord -> Sort -> Index");
+
+        DBProcessor processor =
+                new DBProcessor(Arrays.asList(p), path, out);
+
+        processor.process();
+
+        wordDict.save();
+
+        System.out.println("Done and saved to: " + out);
     }
 
 
@@ -146,6 +173,9 @@ public class Main {
             case 'c':
                 main.cli(args[1]);
                 break;
+            case 'd':
+                main.demo(args[1], args.length>0?args[2]:null);
+                break;
             default:
                 printUsage();
                 break;
@@ -154,6 +184,6 @@ public class Main {
     }
 
     public static void printUsage() {
-        System.out.println("Usage : ./run.sh b|i|g|n|c [input file] [output file]");
+        System.out.println("Usage : ./run.sh d|b|i|g|n|c [input file] [output file]");
     }
 }

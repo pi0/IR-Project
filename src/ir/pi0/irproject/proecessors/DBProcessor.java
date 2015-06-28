@@ -120,7 +120,7 @@ public class DBProcessor {
 
                 //Progress
                 p = 1 - (reader.available() * 1.0 / total);
-                if (p - l_p > .004) {
+                if (p - l_p > .001) {
                     print_progress(startTime, p, null, article_counter, heapFreeSize*1.0 / heapTotal);
                     l_p = p;
                 }
