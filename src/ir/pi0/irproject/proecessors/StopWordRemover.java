@@ -1,5 +1,6 @@
 package ir.pi0.irproject.proecessors;
 
+import ir.pi0.irproject.Consts;
 import ir.pi0.irproject.structures.FastDictFile;
 import ir.pi0.irproject.utils.Normalizer;
 
@@ -9,7 +10,15 @@ public class StopWordRemover implements IProcessor {
 
     private FastDictFile stopWords;
 
-    public StopWordRemover(String path){
+    private static StopWordRemover instance=null;
+
+    public static StopWordRemover getInstance() {
+        if(instance==null)
+            instance=new StopWordRemover(Consts.STOPWORDS_FILE);
+        return instance;
+    }
+
+    private StopWordRemover(String path){
         stopWords=new FastDictFile(path, new FastDictFile.Middleware() {
             public String process(String in) {
                 return Normalizer.normalize(in);

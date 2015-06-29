@@ -48,12 +48,10 @@ public class Main {
 
         System.out.println("Normalizing database");
 
-        IProcessor stopWordRemover = new StopWordRemover(Consts.STOPWORDS_FILE);
-
         IProcessor[] p = {
-                stopWordRemover,
+                StopWordRemover.getInstance(),
                 new Lemmatizer(),
-                stopWordRemover,
+                StopWordRemover.getInstance(),
                 new Sorter(),
         };
 
@@ -87,13 +85,15 @@ public class Main {
 
 
     void generate(String db) throws Exception {
-
         System.out.println("Generate weights");
-
         WordDict wordDict = new WordDict(new File(db), false, false);
+        wordDict.calculate_weights();
+    }
 
-        wordDict.generate_weights();
-
+    void cluster(String db) throws Exception {
+        System.out.println("Clustering");
+        WordDict wordDict = new WordDict(new File(db), false, false);
+        wordDict.cluster_articles();
     }
 
 
@@ -106,20 +106,22 @@ public class Main {
         while (true) {
             System.out.print("Word to lookup ~> ");
             String l = s.nextLine();
-            Integer i = wordDict.getWordRepeats(l);
-            if (i != null)
-                System.out.println("Repeats: " + i);
-            else
-                System.out.println("Not found !");
+
+            wordDict.query(l,100);
+
+//            Integer i = wordDict.getWordRepeats(l);
+//            if (i != null)
+//                System.out.println("Repeats: " + i);
+//            else
+//                System.out.println("Not found !");
         }
 
 
     }
 
     void demo(String path, String out) {
-        System.out.println("Demo mode!");
 
-        IProcessor stopWordRemover = new StopWordRemover(Consts.STOPWORDS_FILE);
+        IProcessor stopWordRemover = StopWordRemover.getInstance();
 
         WordDict wordDict = new WordDict(new File(out), true, false);
 
@@ -133,14 +135,14 @@ public class Main {
 
         System.out.println("StopWord -> Lemmatize -> StopWord -> Sort -> Index");
 
-        DBProcessor processor =
-                new DBProcessor(Arrays.asList(p), path, out);
+        DBProcessor processor = new DBProcessor(Arrays.asList(p), path, out);
 
         processor.process();
 
         wordDict.save();
 
-        System.out.println("Done and saved to: " + out);
+        wordDict.calculate_weights();
+
     }
 
 
@@ -155,6 +157,9 @@ public class Main {
         System.out.println("IR-Project");
         System.out.format("Total heap: %s\r\n",
                 Util.humanReadableByteCount(Runtime.getRuntime().maxMemory()));
+
+        long startTime = System.currentTimeMillis();
+
         System.out.println("-----------------------------");
 
         switch (args[0].charAt(0)) {
@@ -173,17 +178,27 @@ public class Main {
             case 'c':
                 main.cli(args[1]);
                 break;
+            case 'l':
+                main.cluster(args[1]);
+                break;
+
             case 'd':
-                main.demo(args[1], args.length>0?args[2]:null);
+                main.demo(args[1], args.length > 0 ? args[2] : null);
                 break;
             default:
                 printUsage();
                 break;
         }
 
+        long stopTime = System.currentTimeMillis();
+        long elapsedTime = stopTime - startTime;
+        System.out.println("-----------------------------");
+        System.out.printf("Total runtime: %s\n", Util.getDurationBreakdown(elapsedTime, true));
+
+
     }
 
     public static void printUsage() {
-        System.out.println("Usage : ./run.sh d|b|i|g|n|c [input file] [output file]");
+        System.out.println("Usage : ./run.sh d|b|i|g|n|c|l [input file] [output file]");
     }
 }

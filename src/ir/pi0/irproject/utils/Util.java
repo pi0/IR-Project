@@ -1,13 +1,14 @@
 package ir.pi0.irproject.utils;
 
+import gnu.trove.list.TIntList;
+import gnu.trove.list.array.TIntArrayList;
+import gnu.trove.map.hash.TIntDoubleHashMap;
+import gnu.trove.procedure.TIntDoubleProcedure;
+import gnu.trove.procedure.TIntProcedure;
+
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Writer;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -134,7 +135,7 @@ public class Util {
         return r;
     }
 
-    public static boolean deleteRecursive(File path)  {
+    public static boolean deleteRecursive(File path) {
         boolean ret = true;
         if (path.isDirectory())
             for (File f : path.listFiles())
@@ -149,12 +150,66 @@ public class Util {
         w.write((v) & 0xFF);
     }
 
-    public static int log2( int bits )
-    {
-        if( bits == 0 )
+    public static int log2(int bits) {
+        if (bits == 0)
             return 0; // or throw exception
-        return 31 - Integer.numberOfLeadingZeros( bits );
+        return 31 - Integer.numberOfLeadingZeros(bits);
     }
+
+
+    public static String TIntDoubleHashMapToString(TIntDoubleHashMap m) {
+        final StringBuilder sb = new StringBuilder();
+        m.forEachEntry(new TIntDoubleProcedure() {
+            @Override
+            public boolean execute(int i, double v) {
+                sb.append(i).append(':').append(v).append(';');
+                return true;
+            }
+        });
+        return sb.toString();
+    }
+
+    public static TIntDoubleHashMap StringToTIntDoubleHashMap(String s) {
+        String[] sp = s.split(";");
+        TIntDoubleHashMap m = new TIntDoubleHashMap(sp.length);
+        for (String ss : sp) {
+            String[] p = ss.split(":");
+            if (p.length != 2)
+                continue;
+            m.put(Integer.parseInt(p[0]), Double.parseDouble(p[1]));
+        }
+        return m;
+    }
+
+    public static TIntList StringToTIntList(String s) {
+        String[] sp =s.split(";");
+        TIntList l=new TIntArrayList(sp.length);
+        for(String ss:sp)
+            l.add(Integer.parseInt(ss));
+        return l;
+    }
+
+
+    public static String TIntListToString(TIntList l) {
+        final StringBuilder sb = new StringBuilder();
+        l.forEach(new TIntProcedure() {
+            @Override
+            public boolean execute(int i) {
+                sb.append(i).append(';');
+                return true;
+            }
+        });
+        return sb.toString();
+    }
+
+
+//
+//    public static int[] unionSets(int[] a,int[] b){
+//
+//
+//
+//
+//    }
 
 
 }

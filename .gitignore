@@ -1,6 +1,7 @@
 # Ignore big database
 data/IR_FarsiDatabase.txt
 data/IR-phase2.txt
+data/aa.txt
 
 # Ignore generated data
 data/processed

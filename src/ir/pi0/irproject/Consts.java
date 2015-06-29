@@ -5,7 +5,8 @@ public class Consts {
     public final static String DB_TAG = "<مقاله>";
 
     public static final int PROCESSOR_WORKERS;
-    public static int WeightBase = 10000;
+
+    public static int SUB_CLUSTERS =2;
 
     static {
         int p = Runtime.getRuntime().availableProcessors();
