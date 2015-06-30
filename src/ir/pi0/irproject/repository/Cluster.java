@@ -1,5 +1,6 @@
 package ir.pi0.irproject.repository;
 
+import gnu.trove.iterator.TIntDoubleIterator;
 import gnu.trove.list.TIntList;
 import gnu.trove.map.hash.TIntDoubleHashMap;
 import gnu.trove.procedure.TIntDoubleProcedure;
@@ -10,11 +11,13 @@ import java.io.*;
 
 public class Cluster {
 
+    boolean active=true;
     WordDict dict;
     int id = 0;
-    final SubCluster[] sub_clusters;
+    private SubCluster[] sub_clusters;
     TIntDoubleHashMap doc;
     int size = 0;
+    boolean subclustersLoaded = false;
 
     public Cluster(WordDict dict, int id) {
         this.dict = dict;
@@ -53,7 +56,7 @@ public class Cluster {
     }
 
     public double compareToArticle(TIntDoubleHashMap article) {
-        return dict.articleCompare(doc, article);
+        return WordDict.articleCompare(article, doc);
     }
 
     public void saveToFile() {
@@ -77,26 +80,33 @@ public class Cluster {
         }
     }
 
-    public void loadFromFile() {
+    public void loadFromFile(boolean loadSubClusters) {
         File file = new File(dict.clusters_dir, String.valueOf(id));
         try {
             BufferedReader r = new BufferedReader(new FileReader(file));
 
-            this.doc=Util.StringToTIntDoubleHashMap(r.readLine());
-
-            for (int i = 0; i < Consts.SUB_CLUSTERS; i++) {
-                TIntList _a=Util.StringToTIntList(r.readLine());
-                TIntDoubleHashMap _d=Util.StringToTIntDoubleHashMap(r.readLine());
-                SubCluster sc=new SubCluster(_d,_a);
-                sub_clusters[i]=sc;
+            this.doc = Util.StringToTIntDoubleHashMap(r.readLine());
+            if (loadSubClusters) {
+                size=0;
+                for (int i = 0; i < Consts.SUB_CLUSTERS; i++) {
+                    TIntDoubleHashMap _d = Util.StringToTIntDoubleHashMap(r.readLine());
+                    TIntList _a = Util.StringToTIntList(r.readLine());
+                    SubCluster sc = new SubCluster(_d, _a);
+                    sub_clusters[i] = sc;
+                    size+=_a.size();
+                }
+                subclustersLoaded = true;
             }
-
 
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
 
-
+    public SubCluster[] getSubClusters() {
+        if(!subclustersLoaded)
+            loadFromFile(true);
+        return sub_clusters;
     }
 
     public int getSize() {
@@ -104,13 +114,18 @@ public class Cluster {
     }
 
     static void updateDoc(final TIntDoubleHashMap doc, TIntDoubleHashMap newData) {
-        newData.forEachEntry(new TIntDoubleProcedure() {
-            @Override
-            public boolean execute(int i, double v) {
-                doc.adjustOrPutValue(i, v, v);//Simply add
-                return true;
-            }
-        });
+
+        TIntDoubleIterator i = newData.iterator();
+        for (int j=newData.size(); j-->0; ) {
+            i.advance();
+            double v= i.value();
+            doc.adjustOrPutValue(i.key(), v, v);//Simply add
+        }
+
     }
 
+    public void discardSubClusters() {
+        subclustersLoaded=false;
+        this.sub_clusters=new SubCluster[sub_clusters.length];
+    }
 }

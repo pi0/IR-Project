@@ -1,15 +1,18 @@
 package ir.pi0.irproject;
 
+import gnu.trove.procedure.TIntIntProcedure;
 import ir.pi0.irproject.io.DBReader;
 import ir.pi0.irproject.lemmatizer.Lemmatizer;
 import ir.pi0.irproject.proecessors.*;
 import ir.pi0.irproject.repository.WordDict;
+import ir.pi0.irproject.utils.HighLighter;
 import ir.pi0.irproject.utils.Util;
 
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Scanner;
 
 public class Main {
@@ -50,7 +53,7 @@ public class Main {
 
         IProcessor[] p = {
                 StopWordRemover.getInstance(),
-                new Lemmatizer(),
+                Lemmatizer.getInstance(),
                 StopWordRemover.getInstance(),
                 new Sorter(),
         };
@@ -92,7 +95,7 @@ public class Main {
 
     void cluster(String db) throws Exception {
         System.out.println("Clustering");
-        WordDict wordDict = new WordDict(new File(db), false, false);
+        WordDict wordDict = new WordDict(new File(db), false, false,false);
         wordDict.cluster_articles();
     }
 
@@ -105,9 +108,23 @@ public class Main {
 
         while (true) {
             System.out.print("Word to lookup ~> ");
-            String l = s.nextLine();
+            String query = s.nextLine();
 
-            wordDict.query(l,100);
+            List<Integer> r=  wordDict.query(query, 10);
+
+            System.out.println("Found in "+r.size()+" Articles");
+            System.out.println(r.toString());
+
+            HighLighter highLighter=new HighLighter("<span style='background-color:yellow'>","</span>");
+            File base=new File(path+".data/articles");
+
+            int id=r.get(0);
+            String content=Util.readFully(new File(base, String.valueOf(id)));
+
+            String hilight =highLighter.highlight(content,query);
+
+            Util.writeFully(new File("/tmp/a.html"),hilight);
+
 
 //            Integer i = wordDict.getWordRepeats(l);
 //            if (i != null)
@@ -121,21 +138,24 @@ public class Main {
 
     void demo(String path, String out) {
 
+        boolean sync_postings = false;
+
         IProcessor stopWordRemover = StopWordRemover.getInstance();
 
-        WordDict wordDict = new WordDict(new File(out), true, false);
+        WordDict wordDict = new WordDict(new File(out), true, sync_postings);
 
         IProcessor[] p = {
+                new Extractor(new File(out+".data/articles")),
                 stopWordRemover,
-                new Lemmatizer(),
+                Lemmatizer.getInstance(),
                 stopWordRemover,
                 new Sorter(),
-                new Indexer(wordDict),
+                new Indexer(wordDict,sync_postings),
         };
 
         System.out.println("StopWord -> Lemmatize -> StopWord -> Sort -> Index");
 
-        DBProcessor processor = new DBProcessor(Arrays.asList(p), path, out);
+        DBProcessor processor = new DBProcessor(Arrays.asList(p), path, null);
 
         processor.process();
 
@@ -143,6 +163,7 @@ public class Main {
 
         wordDict.calculate_weights();
 
+        wordDict.cluster_articles();
     }
 
 
@@ -178,12 +199,15 @@ public class Main {
             case 'c':
                 main.cli(args[1]);
                 break;
+            case 'w':
+                new WebUI(args[1]);
+                break;
             case 'l':
                 main.cluster(args[1]);
                 break;
 
             case 'd':
-                main.demo(args[1], args.length > 0 ? args[2] : null);
+                main.demo(args[1], args.length > 2 ? args[2] : null);
                 break;
             default:
                 printUsage();

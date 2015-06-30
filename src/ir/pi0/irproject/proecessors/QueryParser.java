@@ -22,7 +22,7 @@ public class QueryParser {
     public QueryParser(WordDict dict) {
         this(dict, new IProcessor[]{
                 StopWordRemover.getInstance(),
-                new Lemmatizer(),
+                Lemmatizer.getInstance(),
                 StopWordRemover.getInstance(),
                 new Sorter(),
                 new Indexer(dict),

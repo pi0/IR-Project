@@ -16,7 +16,14 @@ public class Lemmatizer implements IProcessor {
 
     Stemmer stemmer = new Stemmer();
 
-    public Lemmatizer() {
+    private static  Lemmatizer instance;
+    public static Lemmatizer getInstance(){
+        if(instance==null)
+            instance=new Lemmatizer();
+        return instance;
+    }
+
+    private Lemmatizer() {
 
         try {
 

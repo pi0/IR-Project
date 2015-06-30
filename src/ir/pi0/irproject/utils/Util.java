@@ -1,14 +1,13 @@
 package ir.pi0.irproject.utils;
 
+import gnu.trove.iterator.TIntDoubleIterator;
+import gnu.trove.iterator.TIntIterator;
 import gnu.trove.list.TIntList;
 import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.map.hash.TIntDoubleHashMap;
-import gnu.trove.procedure.TIntDoubleProcedure;
 import gnu.trove.procedure.TIntProcedure;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.Writer;
+import java.io.*;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -159,13 +158,13 @@ public class Util {
 
     public static String TIntDoubleHashMapToString(TIntDoubleHashMap m) {
         final StringBuilder sb = new StringBuilder();
-        m.forEachEntry(new TIntDoubleProcedure() {
-            @Override
-            public boolean execute(int i, double v) {
-                sb.append(i).append(':').append(v).append(';');
-                return true;
-            }
-        });
+
+        TIntDoubleIterator i = m.iterator();
+        for (int j=m.size();j-->0;) {
+            i.advance();
+            sb.append(i.key()).append(':').append(i.value()).append(';');
+        }
+
         return sb.toString();
     }
 
@@ -182,9 +181,9 @@ public class Util {
     }
 
     public static TIntList StringToTIntList(String s) {
-        String[] sp =s.split(";");
-        TIntList l=new TIntArrayList(sp.length);
-        for(String ss:sp)
+        String[] sp = s.split(";");
+        TIntList l = new TIntArrayList(sp.length);
+        for (String ss : sp)
             l.add(Integer.parseInt(ss));
         return l;
     }
@@ -192,14 +191,41 @@ public class Util {
 
     public static String TIntListToString(TIntList l) {
         final StringBuilder sb = new StringBuilder();
-        l.forEach(new TIntProcedure() {
-            @Override
-            public boolean execute(int i) {
-                sb.append(i).append(';');
-                return true;
-            }
-        });
+
+        TIntIterator i=l.iterator();
+        for(int j=l.size();j-->0;){
+            sb.append(i.next()).append(';');
+        }
+
         return sb.toString();
+    }
+
+    public static String readFully(File file) {
+        try {
+            BufferedReader r = new BufferedReader(new FileReader(file));
+            StringBuilder b = new StringBuilder();
+            String l;
+            while ((l = r.readLine()) != null)
+                b.append(l).append("\n");
+            return b.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+
+    }
+
+    public static void writeFully(File file, String str) {
+        try {
+            BufferedWriter bw = new BufferedWriter(new FileWriter(file));
+
+            bw.write(str);
+
+            bw.close();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
 

@@ -19,9 +19,9 @@ public class SubCluster {
         this.articles = articles;
     }
 
-    public void add(int article_id, TIntDoubleHashMap cached) {
+    public void add(int article_id, TIntDoubleHashMap _doc) {
         articles.add(article_id);
-        Cluster.updateDoc(doc, cached);
+        Cluster.updateDoc(doc, _doc);
     }
 
     public int size() {

@@ -1,12 +1,18 @@
 package ir.pi0.irproject.proecessors;
 
+import gnu.trove.map.hash.TIntIntHashMap;
+import gnu.trove.procedure.TIntIntProcedure;
 import ir.pi0.irproject.Consts;
-import ir.pi0.irproject.utils.Util;
 import ir.pi0.irproject.io.DBReader;
 import ir.pi0.irproject.io.DBWriter;
 import ir.pi0.irproject.structures.Queue;
 import ir.pi0.irproject.utils.Tokenizer;
+import ir.pi0.irproject.utils.Util;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.List;
 
 public class DBProcessor {
@@ -27,6 +33,7 @@ public class DBProcessor {
     Tokenizer tokenizer;
 
     private List<IProcessor> processors;
+
 
     public DBProcessor(List<IProcessor> processors, String path, String outPath, int in_buffer_size, int out_buffer_size, int queue_max) {
         this.processors = processors;
@@ -57,7 +64,6 @@ public class DBProcessor {
         this(processors, path, null);
     }
 
-
     public boolean process() {
         if (lock)
             return false;
@@ -72,6 +78,7 @@ public class DBProcessor {
             int total = reader.available();
             double p, l_p = -1;
 
+            TIntIntHashMap starts = new TIntIntHashMap();
 
             System.out.println("Starting " + Consts.PROCESSOR_WORKERS + " Parallel workers");
 
@@ -121,20 +128,22 @@ public class DBProcessor {
                 //Progress
                 p = 1 - (reader.available() * 1.0 / total);
                 if (p - l_p > .001) {
-                    print_progress(startTime, p, null, article_counter, heapFreeSize*1.0 / heapTotal);
+                    print_progress(startTime, p, null, article_counter, heapFreeSize * 1.0 / heapTotal);
                     l_p = p;
                 }
 
                 if (articles.size() > queue_max || heapFreeSize < Consts.MIN_SORT_MEM) {
                     while (articles.size() > 0) {
                         print_progress(startTime, p, /*Consts.waiting_tag*/ null,
-                                article_counter, heapFreeSize*1.0 / heapTotal);
+                                article_counter, heapFreeSize * 1.0 / heapTotal);
                         Thread.sleep(100);
                     }
                     System.gc();
                 }
 
                 articles.enqueue(new DBProcessorJob(article, ++last_article_id));
+
+
                 synchronized (articles) {
                     articles.notify();
                 }
@@ -142,12 +151,12 @@ public class DBProcessor {
             }
             Util.clearLine();
 
+            starts.put(last_article_id, reader.pos());
+
 
             lock = false;
             System.out.println("Finishing all Queue jobs ...");
             background_workers[0].join();
-
-
             background_writer.join();
             if (writer != null)
                 writer.close();
@@ -179,7 +188,7 @@ public class DBProcessor {
 
         System.out.printf(" [ %d Articles ] ", tag_counter);
 
-        Util.printProgress(1-heap_free,0,false,false,"Heap usage");
+        Util.printProgress(1 - heap_free, 0, false, false, "Heap usage");
 
         if (tag != null)
             System.out.print(tag);

@@ -1,13 +1,14 @@
 package ir.pi0.irproject.repository;
 
+import gnu.trove.iterator.TIntIntIterator;
+import gnu.trove.iterator.TIntIterator;
+import gnu.trove.iterator.TIntObjectIterator;
+import gnu.trove.iterator.TObjectIntIterator;
 import gnu.trove.map.TIntIntMap;
 import gnu.trove.map.hash.TIntDoubleHashMap;
 import gnu.trove.map.hash.TIntIntHashMap;
 import gnu.trove.map.hash.TIntObjectHashMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
-import gnu.trove.procedure.TIntIntProcedure;
-import gnu.trove.procedure.TIntProcedure;
-import gnu.trove.procedure.TObjectProcedure;
 import ir.pi0.irproject.Consts;
 import ir.pi0.irproject.proecessors.QueryParser;
 import ir.pi0.irproject.structures.LRUCache;
@@ -17,6 +18,7 @@ import javafx.util.Pair;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -53,9 +55,13 @@ public class WordDict {
 
     QueryParser queryParser = new QueryParser(this);
 
-    List<Cluster> clusters=new ArrayList<>();
+    List<Cluster> clusters = new ArrayList<>();
 
     public WordDict(File db, boolean purge_old_data, boolean sync_postings) {
+        this(db, purge_old_data, sync_postings, true);
+    }
+
+    public WordDict(File db, boolean purge_old_data, boolean sync_postings, boolean load_data) {
 
         this.sync_postings = sync_postings;
         this.word_repeat_file = db;
@@ -102,7 +108,7 @@ public class WordDict {
         long heapFreeSize = Runtime.getRuntime().freeMemory();
 
         //-------------------------
-        if (!purge_old_data) {
+        if (!purge_old_data && load_data) {
             System.out.println("Reading Words database ...");
 
             BufferedReader r;
@@ -131,19 +137,19 @@ public class WordDict {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+
+
+            System.out.println("Reading clusters");
+
+            this.clusters.clear();
+
+            for (File f : clusters_dir.listFiles()) {
+                int id = Integer.parseInt(f.getName());
+                Cluster c = new Cluster(this, id);
+                c.loadFromFile(false);//Don't load subclusters by default for memory efficiency
+                clusters.add(c);
+            }
         }
-
-        //--------------
-        System.out.println("Reading clusters");
-
-        this.clusters.clear();
-
-        for(File f:clusters_dir.listFiles()){
-            int id=Integer.parseInt(f.getName());
-            Cluster c= new Cluster(this,id);
-            c.loadFromFile();
-        }
-
         //-------------------------
 
         //(Debug)
@@ -168,35 +174,33 @@ public class WordDict {
                     new BufferedWriter(new FileWriter(word_repeat_file, false/*don't append*/));
             w.write(csvHeader_word_repeat);
             w.write("\r\n");
-            word_id_map.forEach(new TObjectProcedure<String>() {
-                @Override
-                public boolean execute(String word) {
-                    Integer word_id = word_id_map.get(word);
-                    Integer repeats = word_repeats.get(word_id);
-                    Integer repeats_arc = word_repeats_in_article.get(word_id);
-                    try {
-                        w.write(String.valueOf(word_id) + ',' + word + ',' + repeats + "," + repeats_arc + "\n");
-                        return true;
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        return false;
-                    }
+
+            TObjectIntIterator i = word_id_map.iterator();
+            for (int j = word_id_map.size(); j-- > 0; ) {
+                i.advance();
+                Integer word_id = word_id_map.get(i.value());
+                Integer repeats = word_repeats.get(word_id);
+                Integer repeats_arc = word_repeats_in_article.get(word_id);
+                try {
+                    w.write(String.valueOf(word_id) + ',' + i.key() + ',' + repeats + "," + repeats_arc + "\n");
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-            });
+            }
 
             //-------------------------
 
             System.out.println("Flushing remaining Articles");
 
-            article_words.keySet().forEach(new TIntProcedure() {
-                @Override
-                public boolean execute(int value) {
-                    flush_article(value, true, true);
-                    return true;
-                }
-            });
+            TIntObjectIterator<TIntIntHashMap> i2 = article_words.iterator();
+            for (int j = article_words.size(); j-- > 0; ) {
+                i2.advance();
+                flush_article(i2.key(), true, true);
+            }
+
 
             System.out.println("Flushing all article postings");
+
             word_postings.forEach(new BiConsumer<Integer, WordPosting>() {
                 @Override
                 public void accept(Integer integer, WordPosting wordPosting) {
@@ -232,22 +236,22 @@ public class WordDict {
         final double InvNMax = 1.0 / max_repeats;
 
         //for each word, calculate Wij
-        article.forEachEntry(new TIntIntProcedure() {
-            @Override
-            public boolean execute(int word_id, int repeats) {
-                double logRepeatInArticles = Util.log2(word_repeats_in_article.get(word_id));
-                double w = repeats * InvNMax * (logN - logRepeatInArticles);
-                ws.put(word_id, w);
-                return true;
-            }
-        });
+        TIntIntIterator i = article.iterator();
+        for (int j = article.size(); j-- > 0; ) {
+            i.advance();
+            int key = i.key();
+            double logRepeatInArticles = Util.log2(word_repeats_in_article.get(key));
+            double w = i.value() * InvNMax * (logN - logRepeatInArticles);
+            ws.put(key, w);
+        }
+
 
         return ws;
     }
 
     public void calculate_weights() {
 
-        System.out.println("Calculating word/article doc");
+        System.out.println("Calculate weights");
 
         final int[] articles = list_articles();
 
@@ -288,18 +292,18 @@ public class WordDict {
             //Calculate doc
             final TIntDoubleHashMap weights = calculate_weight(article);
 
-            article.forEachEntry(new TIntIntProcedure() {
-                @Override
-                public boolean execute(int word_id, int repeats) {
-                    double w = weights.get(word_id);
-                    try {
-                        writer.append(String.format("%d,%d,%f\n", word_id, repeats, w));
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    return true;
+            TIntIntIterator it = article.iterator();
+            for (int j = article.size(); j-- > 0; ) {
+                it.advance();
+                int word_id = it.key();
+                double w = weights.get(word_id);
+                try {
+                    writer.append(String.format("%d,%d,%f\n", word_id, it.value(), w));
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
-            });
+            }
+
 
             try {
                 writer.close();
@@ -313,6 +317,7 @@ public class WordDict {
         //(debug)
         long stopTime = System.currentTimeMillis();
         long elapsedTime = stopTime - startTime;
+        Util.clearLine();
         System.out.println();
         System.out.printf("Max heap usage during process : %s\n",
                 Util.humanReadableByteCount(Runtime.getRuntime().totalMemory() - heapFreeSize_min));
@@ -343,6 +348,9 @@ public class WordDict {
         //(debug)
         double p, last_p = -1;
         long startTime = System.currentTimeMillis();
+        long heapTotal = Runtime.getRuntime().totalMemory();
+        long heapFreeSize_min = heapTotal;
+
 
         for (int i = 0; i < articles.length; i++) {
 
@@ -353,10 +361,14 @@ public class WordDict {
             TIntDoubleHashMap article = load_article(article_id, false).getValue();
 
             //(Debug)
+            long heapFreeSize = Runtime.getRuntime().freeMemory();
+            if (heapFreeSize < heapFreeSize_min)
+                heapFreeSize_min = heapFreeSize;
             p = (i * 1.0) / articles.length;
             if (p - last_p > .001) {
                 Util.clearLine();
                 Util.printProgress(p, System.currentTimeMillis() - startTime, false, true, "Clustering");
+                Util.printProgress(1 - (heapFreeSize * 1.0 / heapTotal), 0, false, false, "Heap usage");
                 last_p = p;
             }
 
@@ -364,9 +376,16 @@ public class WordDict {
             double best_match = -1;
             Cluster best_match_c = clusters[0];
             for (Cluster cluster : clusters) {
-
-                if (cluster.getSize() > inc)
-                    continue;//Maximum follower limit :D
+                if (!cluster.active)
+                    continue;
+                if (cluster.getSize() > inc) {
+                    cluster.saveToFile();
+                    cluster.discardSubClusters();
+                    cluster.active = false;
+                    System.out.println("\nCluster " + cluster.id + " full & saved");
+                    System.gc();
+                    continue;
+                }
 
                 double score = cluster.compareToArticle(article);
 
@@ -376,7 +395,6 @@ public class WordDict {
                 }
 
             }
-
             best_match_c.add(article_id, article);
         }
 
@@ -387,7 +405,8 @@ public class WordDict {
 
         System.out.println("Saving all clusters");
         for (Cluster c : clusters)
-            c.saveToFile();
+            if (c.active)
+                c.saveToFile();
         System.out.println("Save done");
 
     }
@@ -420,41 +439,56 @@ public class WordDict {
 
         System.out.println("Do Query");
 
-        TIntDoubleHashMap query_scores = new TIntDoubleHashMap();
-
-        TIntDoubleHashMap query_document = queryParser.get_weights(query);
-
-        final int[] articles = list_articles();
 
         //(debug)
         long startTime = System.currentTimeMillis();
         long heapFreeSize_min = Runtime.getRuntime().totalMemory();
         double p, last_p = -1;
 
-        for (int i = 0; i < articles.length; i++) {
-            final int article_id = articles[i];
+        final TIntDoubleHashMap query_doc = queryParser.get_weights(query);
 
-            //(Debug)
-            p = (i * 1.0) / articles.length;
-            if (p - last_p > .001) {
-                Util.clearLine();
-                Util.printProgress(p, System.currentTimeMillis() - startTime, false, true, "Progress");
-                last_p = p;
+        //-------------------------
+        //L1 -- No limit
+        TreeSet<QueryResult> results_l1 = new TreeSet<>();/*TreeSet is sorted*/
+        for (Cluster c : clusters) {
+            results_l1.add(new QueryResult(c.compareToArticle(query_doc), c));
+        }
+
+        //L2
+        TreeSet<QueryResult> results_l2 = new TreeSet<>();
+        int sz = 0;
+        while (results_l1.size() > 0 && sz < limit) {
+            QueryResult r = results_l1.pollLast();
+            sz += r.cluster.size;
+            System.out.println("Debug: Scanning cluster " + r.cluster.id);
+            for (SubCluster sc : r.cluster.getSubClusters()) {
+                results_l2.add(new QueryResult(sc.compareToArticle(query_doc), sc));
             }
-            long heapFreeSize = Runtime.getRuntime().freeMemory();
-            if (heapFreeSize < heapFreeSize_min)
-                heapFreeSize_min = heapFreeSize;
+            r.cluster.discardSubClusters();//Don't waste memory
+        }
 
-            //Load article
-            TIntDoubleHashMap article = load_article(article_id, false).getValue();
+        //L3
+        final TreeSet<QueryResult> results_l3 = new TreeSet<>();
+        while (results_l2.size() > 0 && results_l3.size() < limit) {
+            QueryResult r2 = results_l2.pollLast();
 
-            //Compare
-            double score = articleCompare(query_document, article);
-
-            //Keep it
-            query_scores.put(article_id, score);
+            TIntIterator i = r2.subCluster.articles.iterator();
+            for (int j = r2.subCluster.articles.size(); j-- > 0; ) {
+                int article_id = i.next();
+                TIntDoubleHashMap article = load_article(article_id, false).getValue();
+                results_l3.add(new QueryResult(articleCompare(query_doc, article), article_id));
+            }
 
         }
+
+        //Final
+        List<Integer> results = new ArrayList<>(limit);
+        while (results_l3.size() > 0 && results.size() < limit) {
+            QueryResult result = results_l3.pollLast();
+            results.add(result.article_id);
+        }
+
+        //-------------------------
 
         //(debug)
         long stopTime = System.currentTimeMillis();
@@ -464,7 +498,7 @@ public class WordDict {
                 Util.humanReadableByteCount(Runtime.getRuntime().totalMemory() - heapFreeSize_min));
         System.out.printf("Took : %s\n", Util.getDurationBreakdown(elapsedTime, true));
 
-        return null;
+        return results;
     }
 
 
@@ -551,9 +585,13 @@ public class WordDict {
             //Save article words
             if (save) {
                 final BufferedWriter w = new BufferedWriter(new FileWriter(article_words_file));
-                article.forEachEntry(new TIntIntProcedure() {
-                    @Override
-                    public boolean execute(int word_id, int word_repeats) {
+                synchronized (article) {
+                    TIntIntIterator it = article.iterator();
+                    for (int j = article.size(); j-- > 0; ) {
+                        it.advance();
+                        int word_id = it.key();
+                        int word_repeats=it.value();
+                        
                         try {
 
                             if (article_weights.containsKey(word_id))
@@ -567,14 +605,11 @@ public class WordDict {
                             }
 
                             word_repeats_in_article.adjustOrPutValue(word_id, 1, 1);
-
-                            return true;
                         } catch (Exception e) {
                             e.printStackTrace();
-                            return false;
                         }
                     }
-                });
+                }
                 w.close();
             }
 

@@ -8,7 +8,7 @@ public class WordPosting {
 
     public WordPosting(File file) {
         try {
-            writer = new BufferedWriter(new FileWriter(file, true));
+            writer = (new FileWriter(file, true));
         } catch (IOException e) {
             e.printStackTrace();
         }

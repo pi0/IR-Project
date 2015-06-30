@@ -10,7 +10,7 @@ public class FileReader {
     public int buffer_size;
     InputStream inputStream;
     ArticleBufferedReader bReader;
-
+    int total_size;
     public FileReader(String path) {
         this.file = new File(path);
     }
@@ -23,6 +23,8 @@ public class FileReader {
 
                 bReader = new ArticleBufferedReader(
                         new InputStreamReader(inputStream),buffer_size);
+
+                total_size=available();
 
                 this.buffer_size = buffer_size;
                 opened = true;
@@ -45,6 +47,10 @@ public class FileReader {
             return -1;
         }
 
+    }
+
+    public int pos() {
+        return total_size-available();
     }
 
 
