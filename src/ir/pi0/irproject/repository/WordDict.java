@@ -191,13 +191,12 @@ public class WordDict {
             //-------------------------
 
             System.out.println("Flushing remaining Articles");
-
-            TIntObjectIterator<TIntIntHashMap> i2 = article_words.iterator();
-            for (int j = article_words.size(); j-- > 0; ) {
-                i2.advance();
-                flush_article(i2.key(), true, true);
+            synchronized (article_words) {
+                TIntObjectIterator<TIntIntHashMap> i2 = article_words.iterator();
+                for (; i2.hasNext(); ) {
+                    flush_article(i2.key(), true, true);
+                }
             }
-
 
             System.out.println("Flushing all article postings");
 
@@ -591,7 +590,7 @@ public class WordDict {
                         it.advance();
                         int word_id = it.key();
                         int word_repeats=it.value();
-                        
+
                         try {
 
                             if (article_weights.containsKey(word_id))
